@@ -72,6 +72,22 @@ def create_chip_in_session():
         logging.error(f"Error processing payment: {e}")
         return jsonify({'error': str(e)}), 500
 
+# Webhook endpoint to receive payment events
+@app.route('/chipin-webhook', methods=['POST'])
+def chipin_webhook():
+    data = request.json  # Get the JSON payload sent by Chip In
+
+    # Log the received data for debugging purposes
+    print("Received Chip In webhook event:", data)
+
+    # Process the webhook event (you can add further logic here based on the event type)
+    if data.get('type') == 'purchase.created':
+        # Handle purchase created event
+        print("Purchase created event received:", data)
+
+    # Return a success response to Chip In
+    return jsonify({'status': 'success'}), 200
+
 # Start the Flask server
 if __name__ == '__main__':
     app.run(debug=True)
