@@ -84,10 +84,35 @@ def chipin_webhook():
     # Log the received data for debugging purposes
     print("Received Chip In webhook event:", data)
 
-    # Process the webhook event (you can add further logic here based on the event type)
-    if data.get('type') == 'purchase.created':
-        # Handle purchase created event
-        print("Purchase created event received:", data)
+    # Check if the event type is 'purchase.paid' (which means payment was successful)
+    if data.get('event_type') == 'purchase.paid':
+        purchase_info = data.get('purchase', {})
+        payment_info = data.get('payment', {})
+        client_info = data.get('client', {})
+
+        # Extract necessary details
+        purchase_id = data.get('id')
+        customer_name = client_info.get('full_name')
+        total_amount = purchase_info.get('total', 0)
+        payment_status = data.get('status')
+        payment_method = data.get('transaction_data', {}).get('payment_method')
+        email = client_info.get('email')
+        phone = client_info.get('phone')
+        shipping_address = client_info.get('shipping_street_address')
+        products = purchase_info.get('products', [])
+
+        # Log for debugging
+        print(f"Purchase ID: {purchase_id}")
+        print(f"Customer: {customer_name}")
+        print(f"Total Amount: {total_amount}")
+        print(f"Payment Status: {payment_status}")
+        print(f"Payment Method: {payment_method}")
+        print(f"Customer Email: {email}")
+        print(f"Customer Phone: {phone}")
+        print(f"Shipping Address: {shipping_address}")
+        print(f"Products: {products}")
+
+        # TODO: Add code here to update your order management system, save data to database, send an email, etc.
 
     # Return a success response to Chip In
     return jsonify({'status': 'success'}), 200
