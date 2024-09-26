@@ -21,7 +21,7 @@ def create_chip_in_session():
         chip_in_url = "https://gate.chip-in.asia/api/v1/purchases/"
         
         # Your Chip In API key
-        api_key = "GL0wFCcFob5IgIIY2qsWfUtx1W27Wfm5Q2uoITFxo5QkLtjSxEHEh0ekux3VXIf8quVQo7IaoPdiuztmTDzmpw==" # Replace with your actual API key
+        api_key = "GL0wFCcFob5IgIIY2qsWfUtx1W27Wfm5Q2uoITFxo5QkLtjSxEHEh0ekux3VXIf8quVQo7IaoPdiuztmTDzmpw=="  # Replace with your actual API key
         
         # Prepare the headers and data to send to Chip In
         headers = {
