@@ -3,7 +3,7 @@ from flask_cors import CORS  # Import Flask-CORS
 import requests
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "https://www.vamos.com.my"}})
 
 # Route to create a Chip In purchase session
 @app.route('/create-chip-in-session', methods=['POST'])
