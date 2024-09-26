@@ -5,7 +5,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 # Define the database engine
-engine = create_engine('sqlite:///orders.db')  # This will create a SQLite database file called 'orders.db'
+engine = create_engine('sqlite:////Users/user/chip-in-backend/orders.db')  # This will create a SQLite database file called 'orders.db'
 
 # Create a base class for the models
 Base = declarative_base()
