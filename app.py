@@ -1,9 +1,14 @@
 from flask import Flask, request, jsonify
+from sqlalchemy.orm import sessionmaker
+from models import Order, engine, Session
 from flask_cors import CORS
 import requests
 import logging
 
 app = Flask(__name__)
+
+# Use the session from models.py
+session = Session()
 
 # Enable CORS for the Shopify domain
 CORS(app, resources={r"/*": {"origins": "*"}},
@@ -86,33 +91,33 @@ def chipin_webhook():
 
     # Check if the event type is 'purchase.paid' (which means payment was successful)
     if data.get('event_type') == 'purchase.paid':
-        purchase_info = data.get('purchase', {})
-        payment_info = data.get('payment', {})
         client_info = data.get('client', {})
+        purchase_info = data.get('purchase', {})
 
         # Extract necessary details
-        purchase_id = data.get('id')
         customer_name = client_info.get('full_name')
         total_amount = purchase_info.get('total', 0)
-        payment_status = data.get('status')
-        payment_method = data.get('transaction_data', {}).get('payment_method')
         email = client_info.get('email')
         phone = client_info.get('phone')
-        shipping_address = client_info.get('shipping_street_address')
-        products = purchase_info.get('products', [])
 
         # Log for debugging
-        print(f"Purchase ID: {purchase_id}")
         print(f"Customer: {customer_name}")
         print(f"Total Amount: {total_amount}")
-        print(f"Payment Status: {payment_status}")
-        print(f"Payment Method: {payment_method}")
         print(f"Customer Email: {email}")
         print(f"Customer Phone: {phone}")
-        print(f"Shipping Address: {shipping_address}")
-        print(f"Products: {products}")
 
-        # TODO: Add code here to update your order management system, save data to database, send an email, etc.
+        # Create a new order record in the database
+        new_order = Order(
+            customer_name=customer_name,
+            email=email,
+            phone=phone,
+            total_amount=total_amount,
+            status="Paid"
+        )
+        session.add(new_order)
+        session.commit()
+
+        print("Order saved in database.")
 
     # Return a success response to Chip In
     return jsonify({'status': 'success'}), 200
