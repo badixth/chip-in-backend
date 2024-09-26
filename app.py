@@ -48,18 +48,19 @@ def create_chip_in_session():
         # Send the request to Chip In API to create the payment session
         response = requests.post(chip_in_url, json=payload, headers=headers)
 
-        # Check if the request was successful and a checkout URL is present
-        if response.status_code == 200:
-            response_data = response.json()
-            checkout_url = response_data.get('checkout_url')
-            if checkout_url:
-                # Return the checkout URL to the frontend
-                return jsonify({'checkout_url': checkout_url}), 200
-            else:
-                # Return error if checkout URL is missing
-                return jsonify({'error': 'Failed to get checkout URL', 'details': response.text}), 400
+        # Log the full response for debugging purposes
+        logging.info(f"Chip In API Response: {response.text}")
+
+        # Parse the response JSON
+        response_data = response.json()
+
+        # Check if a checkout URL is present, regardless of any error messages
+        checkout_url = response_data.get('checkout_url')
+        if checkout_url:
+            # Return the checkout URL to the frontend
+            return jsonify({'checkout_url': checkout_url}), 200
         else:
-            # Return error if Chip In request failed
+            # If no checkout URL is found, return the error message
             return jsonify({'error': 'Failed to create Chip In session', 'details': response.text}), 400
 
     except Exception as e:
