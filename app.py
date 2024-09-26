@@ -3,7 +3,11 @@ from flask_cors import CORS  # Import Flask-CORS
 import requests
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "https://www.vamos.com.my"}})
+# Enable CORS for your domain with specific methods and headers
+CORS(app, resources={r"/*": {"origins": "https://www.vamos.com.my"}},
+     supports_credentials=True, 
+     methods=["GET", "POST", "OPTIONS"],
+     allow_headers=["Content-Type", "Authorization"])
 
 # Route to create a Chip In purchase session
 @app.route('/create-chip-in-session', methods=['POST'])
@@ -57,14 +61,3 @@ def create_chip_in_session():
 # Start the Flask server
 if __name__ == '__main__':
     app.run(debug=True)
-
-
-    <ul class=" trx_addons_list_dot" style="text-align: right;">
- 	<li style="font-weight: 400; text-align: center;" aria-level="1">Automated cleaning for smaller areas.</li>
- 	<li style="font-weight: 400; text-align: center;" aria-level="1">Precision Cleaning</li>
- 	<li style="font-weight: 400; text-align: center;" aria-level="1">Minimal downtime for large areas</li>
-    <li style="font-weight: 400; text-align: center;" aria-level="1">Post Performance report</li>
- 	<li style="font-weight: 400; text-align: center;" aria-level="1">Report Panel Condition</li>
- 	<li style="font-weight: 400; text-align: center;" aria-level="1">Priority Annual Scheduling</li>
-    <li style="font-weight: 400; text-align: center;" aria-level="1">Full Operation Report</li>
-</ul>
