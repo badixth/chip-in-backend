@@ -5,14 +5,18 @@ import logging
 
 app = Flask(__name__)
 
-# Enable CORS for your Shopify domain
-CORS(app, resources={r"/*": {"origins": "https://www.vamos.com.my"}},
-     supports_credentials=True, 
+# Enable CORS for the Shopify domain
+CORS(app, resources={r"/*": {"origins": "*"}},
+     supports_credentials=True,
      methods=["GET", "POST", "OPTIONS"],
      allow_headers=["Content-Type", "Authorization"])
 
 # Setup logging to display incoming payloads
 logging.basicConfig(level=logging.INFO)
+
+@app.route('/', methods=['GET'])
+def index():
+    return "Server is working!"
 
 # Route to create a Chip In purchase session
 @app.route('/create-chip-in-session', methods=['POST'])
