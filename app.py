@@ -13,8 +13,7 @@ app = Flask(__name__)
 load_dotenv()
 
 # Load Shopify and Chip In credentials from environment variables
-SHOPIFY_API_KEY = os.getenv('SHOPIFY_API_KEY')
-SHOPIFY_PASSWORD = os.getenv('SHOPIFY_PASSWORD')
+SHOPIFY_API_KEY = os.getenv('SHOPIFY_API_KEY')  # This is now the access token
 SHOPIFY_STORE_URL = os.getenv('SHOPIFY_STORE_URL')
 CHIP_IN_API_KEY = os.getenv('CHIP_IN_API_KEY')
 CHIP_IN_BRAND_ID = os.getenv('CHIP_IN_BRAND_ID')
@@ -69,7 +68,7 @@ def create_chip_in_session():
                 "currency": "MYR"
             },
             "notes": order_data.get("notes", ""),
-            "brand_id": CHIP_IN_BRAND_ID,  # Replace with your Chip In brand ID from the environment
+            "brand_id": CHIP_IN_BRAND_ID,  # Use Chip In brand ID
             "custom_fields": {
                 "shopify_order_id": shopify_order_id  # Pass Shopify Order ID to Chip In
             }
@@ -94,6 +93,7 @@ def create_chip_in_session():
         logging.error(f"Error processing payment: {e}")
         return jsonify({'error': str(e)}), 500
 
+
 # Webhook endpoint to receive payment events
 @app.route('/chipin-webhook', methods=['POST'])
 def chipin_webhook():
@@ -108,33 +108,29 @@ def chipin_webhook():
 
         # Check if Shopify order_id exists, then update the Shopify order status
         if shopify_order_id:
-            update_shopify_order_status(shopify_order_id, 'paid')  # Update the status to 'paid'
-            logging.info(f"Shopify order {shopify_order_id} marked as paid.")
-            return jsonify({'status': 'success'}), 200
+            if update_shopify_order_status(shopify_order_id, 'paid'):  # Update the status to 'paid'
+                logging.info(f"Shopify order {shopify_order_id} marked as paid.")
+                return jsonify({'status': 'success'}), 200
+            else:
+                logging.warning(f"Failed to update Shopify order: {shopify_order_id}")
+                return jsonify({'error': 'Failed to update Shopify order'}), 400
         else:
             logging.warning("No Shopify order_id found in the webhook event.")
             return jsonify({'error': 'Shopify order_id missing'}), 400
+            
     
     # If the event is not a 'purchase.paid', ignore it
     return jsonify({'status': 'ignored'}), 200
 
 
-# Function to retrieve Shopify order by email
-def get_shopify_order_by_email(email):
-    shopify_orders_url = f"https://{SHOPIFY_API_KEY}:{SHOPIFY_PASSWORD}@{SHOPIFY_STORE_URL}/admin/api/2023-01/orders.json?email={email}"
-    
-    response = requests.get(shopify_orders_url)
-    
-    if response.status_code == 200:
-        orders = response.json().get('orders', [])
-        if orders:
-            return orders[0]  # Assuming we get the first order if the email matches.
-    
-    return None
-
 # Function to update Shopify order status
 def update_shopify_order_status(order_id, status):
-    shopify_order_url = f"https://{SHOPIFY_API_KEY}:{SHOPIFY_PASSWORD}@{SHOPIFY_STORE_URL}/admin/api/2023-01/orders/{order_id}.json"
+    shopify_order_url = f"https://{SHOPIFY_STORE_URL}/admin/api/2023-01/orders/{order_id}.json"
+
+    headers = {
+        "X-Shopify-Access-Token": SHOPIFY_API_KEY,  # Use access token as API key in the header
+        "Content-Type": "application/json"
+    }
     
     payload = {
         "order": {
@@ -142,14 +138,16 @@ def update_shopify_order_status(order_id, status):
             "financial_status": status  # Possible values: 'paid', 'pending', etc.
         }
     } 
-    
-    headers = {"Content-Type": "application/json"}
+
     response = requests.put(shopify_order_url, json=payload, headers=headers)
     
     if response.status_code == 200:
         logging.info(f"Order {order_id} updated successfully in Shopify.")
+        return True
     else:
         logging.error(f"Failed to update order in Shopify. Status Code: {response.status_code}")
+        return False
+
 
 # Start the Flask server
 if __name__ == '__main__':
