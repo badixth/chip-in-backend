@@ -18,6 +18,9 @@ SHOPIFY_STORE_URL = os.getenv('SHOPIFY_STORE_URL')
 CHIP_IN_API_KEY = os.getenv('CHIP_IN_API_KEY')
 CHIP_IN_BRAND_ID = os.getenv('CHIP_IN_BRAND_ID')
 
+logging.info(f"CHIP_IN_BRAND_ID: {CHIP_IN_BRAND_ID}")
+
+
 # Use the session from models.py
 session = Session()
 
