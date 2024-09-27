@@ -16,7 +16,8 @@ load_dotenv()
 SHOPIFY_API_KEY = os.getenv('SHOPIFY_API_KEY')  # This is now the access token
 SHOPIFY_STORE_URL = os.getenv('SHOPIFY_STORE_URL')
 CHIP_IN_API_KEY = os.getenv('CHIP_IN_API_KEY')
-CHIP_IN_BRAND_ID = os.getenv('CHIP_IN_BRAND_ID')
+CHIP_IN_BRAND_ID = "o4e89ff13-b543-4c3d-9763-caa6026acab3"
+
 
 logging.info(f"CHIP_IN_BRAND_ID: {CHIP_IN_BRAND_ID}")
 
