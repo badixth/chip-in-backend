@@ -1,11 +1,23 @@
 from flask import Flask, request, jsonify
 from sqlalchemy.orm import sessionmaker
 from models import Order, engine, Session
+from dotenv import load_dotenv
+import os
 from flask_cors import CORS
 import requests
 import logging
 
 app = Flask(__name__)
+
+# Load the .env file
+load_dotenv()
+
+# Load Shopify and Chip In credentials from environment variables
+SHOPIFY_API_KEY = os.getenv('SHOPIFY_API_KEY')
+SHOPIFY_PASSWORD = os.getenv('SHOPIFY_PASSWORD')
+SHOPIFY_STORE_URL = os.getenv('SHOPIFY_STORE_URL')
+CHIP_IN_API_KEY = os.getenv('CHIP_IN_API_KEY')
+CHIP_IN_BRAND_ID = os.getenv('CHIP_IN_BRAND_ID')
 
 # Use the session from models.py
 session = Session()
@@ -29,6 +41,7 @@ def create_chip_in_session():
     try:
         # Get the cart data and form data from the POST request
         order_data = request.json
+        shopify_order_id = order_data.get("order_id")  # Capture the Shopify Order ID
 
         # Log the incoming payload for debugging
         logging.info(f"Received Payload: {order_data}")
@@ -36,12 +49,9 @@ def create_chip_in_session():
         # Chip In API URL
         chip_in_url = "https://gate.chip-in.asia/api/v1/purchases/"
         
-        # Your Chip In API key
-        api_key = "GL0wFCcFob5IgIIY2qsWfUtx1W27Wfm5Q2uoITFxo5QkLtjSxEHEh0ekux3VXIf8quVQo7IaoPdiuztmTDzmpw=="  # Replace with your actual API key
-        
         # Prepare the headers and data to send to Chip In
         headers = {
-            "Authorization": f"Bearer {api_key}",
+            "Authorization": f"Bearer {CHIP_IN_API_KEY}",  # Use API key from environment
             "Content-Type": "application/json"
         }
 
@@ -59,7 +69,10 @@ def create_chip_in_session():
                 "currency": "MYR"
             },
             "notes": order_data.get("notes", ""),
-            "brand_id": "4e89ff13-b543-4c3d-9763-caa6026acab3"  # Replace with your Chip In brand ID
+            "brand_id": CHIP_IN_BRAND_ID,  # Replace with your Chip In brand ID from the environment
+            "custom_fields": {
+                "shopify_order_id": shopify_order_id  # Pass Shopify Order ID to Chip In
+            }
         }
 
         logging.info(f"Payload sent to Chip In API: {payload}")
@@ -87,40 +100,77 @@ def chipin_webhook():
     data = request.json  # Get the JSON payload sent by Chip In
 
     # Log the received data for debugging purposes
-    print("Received Chip In webhook event:", data)
+    logging.info(f"Received Chip In webhook event: {data}")
 
-    # Check if the event type is 'purchase.paid' (which means payment was successful)
+    # Check if the event type is 'purchase.paid'
     if data.get('event_type') == 'purchase.paid':
-        client_info = data.get('client', {})
-        purchase_info = data.get('purchase', {})
+        shopify_order_id = data.get('custom_fields', {}).get('shopify_order_id')  # Retrieve Shopify order_id
 
-        # Extract necessary details
-        customer_name = client_info.get('full_name')
-        total_amount = purchase_info.get('total', 0)
-        email = client_info.get('email')
-        phone = client_info.get('phone')
+        # Check if Shopify order_id exists, then update the Shopify order status
+        if shopify_order_id:
+            update_shopify_order_status(shopify_order_id, 'paid')  # Update the status to 'paid'
+            logging.info(f"Shopify order {shopify_order_id} marked as paid.")
+            return jsonify({'status': 'success'}), 200
+        else:
+            logging.warning("No Shopify order_id found in the webhook event.")
+            return jsonify({'error': 'Shopify order_id missing'}), 400
+    
+    # If the event is not a 'purchase.paid', ignore it
+    return jsonify({'status': 'ignored'}), 200
 
-        # Log for debugging
-        print(f"Customer: {customer_name}")
-        print(f"Total Amount: {total_amount}")
-        print(f"Customer Email: {email}")
-        print(f"Customer Phone: {phone}")
-
-        # Create a new order record in the database
-        new_order = Order(
-            customer_name=customer_name,
-            email=email,
-            phone=phone,
-            total_amount=total_amount,
-            status="Paid"
-        )
-        session.add(new_order)
-        session.commit()
-
-        print("Order saved in database.")
+# Function to update Shopify order status
+def update_shopify_order_status(order_id, status):
+    shopify_order_url = f"https://{SHOPIFY_API_KEY}:{SHOPIFY_PASSWORD}@{SHOPIFY_STORE_URL}/admin/api/2023-01/orders/{order_id}.json"
+    
+    payload = {
+        "order": {
+            "id": order_id,
+            "financial_status": status  # Possible values: 'paid', 'pending', etc.
+        }
+    }
+    
+    headers = {"Content-Type": "application/json"}
+    response = requests.put(shopify_order_url, json=payload, headers=headers)
+    
+    if response.status_code == 200:
+        logging.info(f"Order {order_id} updated successfully in Shopify.")
+    else:
+        logging.error(f"Failed to update order in Shopify. Status Code: {response.status_code}")
 
     # Return a success response to Chip In
     return jsonify({'status': 'success'}), 200
+
+# Function to retrieve Shopify order by email
+def get_shopify_order_by_email(email):
+    shopify_orders_url = f"https://{SHOPIFY_API_KEY}:{SHOPIFY_PASSWORD}@{SHOPIFY_STORE_URL}/admin/api/2023-01/orders.json?email={email}"
+    
+    response = requests.get(shopify_orders_url)
+    
+    if response.status_code == 200:
+        orders = response.json().get('orders', [])
+        if orders:
+            return orders[0]  # Assuming we get the first order if the email matches.
+    
+    return None
+
+# Function to update Shopify order status
+def update_shopify_order_status(order_id, status):
+    shopify_order_url = f"https://{SHOPIFY_API_KEY}:{SHOPIFY_PASSWORD}@{SHOPIFY_STORE_URL}/admin/api/2023-01/orders/{order_id}.json"
+    
+    payload = {
+        "order": {
+            "id": order_id,
+            "financial_status": status  # Possible values: 'paid', 'pending', etc.
+        }
+    }
+    
+    headers = {"Content-Type": "application/json"}
+    response = requests.put(shopify_order_url, json=payload, headers=headers)
+    
+    if response.status_code == 200:
+        logging.info(f"Order {order_id} updated successfully in Shopify.")
+    else:
+        logging.error(f"Failed to update order in Shopify. Status Code: {response.status_code}")
 
 # Start the Flask server
 if __name__ == '__main__':
