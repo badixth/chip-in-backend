@@ -10,6 +10,7 @@ import logging
 app = Flask(__name__)
 
 # Load the .env file
+load_dotenv()  # This loads the .env file
 
 # Load Shopify and Chip In credentials from environment variables
 SHOPIFY_API_KEY = os.getenv('SHOPIFY_API_KEY') # This is now the access token
