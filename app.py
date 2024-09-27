@@ -10,16 +10,12 @@ import logging
 app = Flask(__name__)
 
 # Load the .env file
-load_dotenv()
 
 # Load Shopify and Chip In credentials from environment variables
-SHOPIFY_API_KEY = os.getenv('SHOPIFY_API_KEY')  # This is now the access token
+SHOPIFY_API_KEY = os.getenv('SHOPIFY_API_KEY') # This is now the access token
 SHOPIFY_STORE_URL = os.getenv('SHOPIFY_STORE_URL')
 CHIP_IN_API_KEY = os.getenv('CHIP_IN_API_KEY')
-CHIP_IN_BRAND_ID = "o4e89ff13-b543-4c3d-9763-caa6026acab3"
-
-
-logging.info(f"CHIP_IN_BRAND_ID: {CHIP_IN_BRAND_ID}")
+CHIP_IN_BRAND_ID = os.getenv('CHIP_IN_BRAND_ID')
 
 
 # Use the session from models.py
@@ -34,6 +30,8 @@ CORS(app, resources={r"/*": {"origins": "*"}},
 # Setup logging to display incoming payloads
 logging.basicConfig(level=logging.INFO)
 
+logging.info(f"CHIP_IN_BRAND_ID: {CHIP_IN_BRAND_ID}")
+
 @app.route('/', methods=['GET'])
 def index():
     return "Server is working!"
@@ -42,7 +40,10 @@ def index():
 def create_chip_in_session():
     try:
         # Step 1: Get the JSON data sent from the frontend
-        data = request.get_json()
+        try:
+            data = request.get_json()
+        except Exception as e:
+            return jsonify({'error': 'Invalid JSON data', 'details': str(e)}), 400
 
         # Step 2: Extract the required fields from the incoming data
         name = data.get('name')
@@ -94,12 +95,15 @@ def create_chip_in_session():
         # Log the response from Chip In API for debugging
         logging.info(f"Chip In API Response: {response_data}")
 
-        # Step 6: Check if the checkout URL is in the response and return it to frontend
-        checkout_url = response_data.get('checkout_url')
-        if checkout_url:
-            return jsonify({'checkout_url': checkout_url}), 200
+        # Check if the response status is successful
+        if response.status_code == 201 and response_data.get('checkout_url'):
+            return jsonify({'checkout_url': response_data['checkout_url']}), 201
         else:
-            return jsonify({'error': 'Failed to create Chip In session', 'details': response.text}), 400
+            return jsonify({
+                'error': 'Failed to create Chip In session',
+                'details': response_data
+            }), 400
+
 
     except Exception as e:
         # Log the error for debugging
@@ -165,4 +169,4 @@ def update_shopify_order_status(order_id, status):
 
 # Start the Flask server
 if __name__ == '__main__':
-    app.run(debug=True, port=5001)
+    app.run(debug=True)
