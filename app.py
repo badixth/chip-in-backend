@@ -118,27 +118,6 @@ def chipin_webhook():
     # If the event is not a 'purchase.paid', ignore it
     return jsonify({'status': 'ignored'}), 200
 
-# Function to update Shopify order status
-def update_shopify_order_status(order_id, status):
-    shopify_order_url = f"https://{SHOPIFY_API_KEY}:{SHOPIFY_PASSWORD}@{SHOPIFY_STORE_URL}/admin/api/2023-01/orders/{order_id}.json"
-    
-    payload = {
-        "order": {
-            "id": order_id,
-            "financial_status": status  # Possible values: 'paid', 'pending', etc.
-        }
-    }
-    
-    headers = {"Content-Type": "application/json"}
-    response = requests.put(shopify_order_url, json=payload, headers=headers)
-    
-    if response.status_code == 200:
-        logging.info(f"Order {order_id} updated successfully in Shopify.")
-    else:
-        logging.error(f"Failed to update order in Shopify. Status Code: {response.status_code}")
-
-    # Return a success response to Chip In
-    return jsonify({'status': 'success'}), 200
 
 # Function to retrieve Shopify order by email
 def get_shopify_order_by_email(email):
@@ -162,7 +141,7 @@ def update_shopify_order_status(order_id, status):
             "id": order_id,
             "financial_status": status  # Possible values: 'paid', 'pending', etc.
         }
-    }
+    } 
     
     headers = {"Content-Type": "application/json"}
     response = requests.put(shopify_order_url, json=payload, headers=headers)
