@@ -7,5 +7,8 @@ __pycache__/
 # Ignore virtual environment folder
 venv/
 
+# Ignore macOS file
 .DS_Store
+
+# Ignore environment variable files
 .env

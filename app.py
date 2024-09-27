@@ -34,55 +34,63 @@ logging.basicConfig(level=logging.INFO)
 def index():
     return "Server is working!"
 
-# Route to create a Chip In purchase session
 @app.route('/create-chip-in-session', methods=['POST'])
 def create_chip_in_session():
     try:
-        # Get the cart data and form data from the POST request
-        order_data = request.json
-        shopify_order_id = order_data.get("order_id")  # Capture the Shopify Order ID
+        # Step 1: Get the JSON data sent from the frontend
+        data = request.get_json()
 
-        # Log the incoming payload for debugging
-        logging.info(f"Received Payload: {order_data}")
-        
-        # Chip In API URL
+        # Step 2: Extract the required fields from the incoming data
+        name = data.get('name')
+        email = data.get('email')
+        phone = data.get('phone')
+        shipping_address = data.get('shipping_address')
+        notes = data.get('notes', '')  # Optional field with default value of empty string
+        items = data.get('items')
+        shopify_order_id = data.get("order_id")  # Capture the Shopify Order ID
+
+        # Step 3: Check if all required fields are present
+        if not all([name, email, phone, shipping_address, items]):
+            return jsonify({'error': 'Missing required fields'}), 400
+
+        # Step 4: Prepare the payload for Chip In API
         chip_in_url = "https://gate.chip-in.asia/api/v1/purchases/"
         
-        # Prepare the headers and data to send to Chip In
         headers = {
-            "Authorization": f"Bearer {CHIP_IN_API_KEY}",  # Use API key from environment
+            "Authorization": f"Bearer {CHIP_IN_API_KEY}",
             "Content-Type": "application/json"
         }
 
-        # Prepare the payload for the Chip In API
         payload = {
             "client": {
-                "email": order_data["email"],
-                "phone": order_data["phone"],
-                "full_name": order_data["name"]
+                "email": email,
+                "phone": phone,
+                "full_name": name
             },
             "purchase": {
                 "products": [
-                    {"name": item['name'], "price": item['price'], "quantity": item['quantity']} for item in order_data['items']
+                    {"name": item['name'], "price": item['price'], "quantity": item['quantity']} for item in items
                 ],
                 "currency": "MYR"
             },
-            "notes": order_data.get("notes", ""),
-            "brand_id": CHIP_IN_BRAND_ID,  # Use Chip In brand ID
+            "notes": notes,
+            "brand_id": CHIP_IN_BRAND_ID,
             "custom_fields": {
-                "shopify_order_id": shopify_order_id  # Pass Shopify Order ID to Chip In
+                "shopify_order_id": shopify_order_id  # Optional field
             }
         }
 
+        # Log the outgoing payload for debugging
         logging.info(f"Payload sent to Chip In API: {payload}")
 
-        # Send the request to Chip In API to create the payment session
+        # Step 5: Send the request to Chip In API
         response = requests.post(chip_in_url, json=payload, headers=headers)
         response_data = response.json()
 
+        # Log the response from Chip In API for debugging
         logging.info(f"Chip In API Response: {response_data}")
 
-        # Check if a checkout URL is present, return it to frontend
+        # Step 6: Check if the checkout URL is in the response and return it to frontend
         checkout_url = response_data.get('checkout_url')
         if checkout_url:
             return jsonify({'checkout_url': checkout_url}), 200
@@ -90,8 +98,10 @@ def create_chip_in_session():
             return jsonify({'error': 'Failed to create Chip In session', 'details': response.text}), 400
 
     except Exception as e:
+        # Log the error for debugging
         logging.error(f"Error processing payment: {e}")
         return jsonify({'error': str(e)}), 500
+
 
 
 # Webhook endpoint to receive payment events
@@ -151,4 +161,4 @@ def update_shopify_order_status(order_id, status):
 
 # Start the Flask server
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port=5001)
