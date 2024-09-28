@@ -247,7 +247,11 @@ def shopify_webhook():
         logging.error(f"Error processing Shopify webhook: {e}")
         return jsonify({'error': str(e)}), 500
 
-
+def format_phone_number(phone):
+    # If the phone number starts with 0, replace it with the Malaysian country code +60
+    if phone.startswith('0'):
+        phone = '+60' + phone[1:]
+    return phone
 
 
 def create_shopify_order(name, email, phone, shipping_address, items, financial_status="paid"):
