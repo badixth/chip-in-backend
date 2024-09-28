@@ -247,11 +247,13 @@ def shopify_webhook():
         logging.error(f"Error processing Shopify webhook: {e}")
         return jsonify({'error': str(e)}), 500
 
-
-
 def create_shopify_order(name, email, phone, shipping_address, items, financial_status="paid"):
-    # Shopify API URL
+    # Shopify API URLs
     shopify_order_url = f"{SHOPIFY_STORE_URL}/admin/api/2023-04/orders.json"
+    
+    # Search for customers by either phone or email
+    shopify_search_customer_by_phone_url = f"{SHOPIFY_STORE_URL}/admin/api/2023-04/customers/search.json?query=phone:{phone}"
+    shopify_search_customer_by_email_url = f"{SHOPIFY_STORE_URL}/admin/api/2023-04/customers/search.json?query=email:{email}"
 
     headers = {
         "X-Shopify-Access-Token": SHOPIFY_API_KEY,
@@ -259,22 +261,43 @@ def create_shopify_order(name, email, phone, shipping_address, items, financial_
     }
 
     # Split full name into first_name and last_name
-    name_parts = name.split(" ", 1)
+    name_parts = full_name.split(" ", 1)
     first_name = name_parts[0]
     last_name = name_parts[1] if len(name_parts) > 1 else ""
 
-    # Prepare the order payload
+    # Step 1: Search for the customer by phone number
+    response_by_phone = requests.get(shopify_search_customer_by_phone_url, headers=headers)
+
+    # Check if customer is found by phone
+    if response_by_phone.status_code == 200 and response_by_phone.json().get('customers'):
+        existing_customer_id = response_by_phone.json()['customers'][0]['id']
+        logging.info(f"Customer found by phone with ID: {existing_customer_id}")
+        return create_order_with_customer_id(existing_customer_id, first_name, last_name, email, phone, shipping_address, items, financial_status)
+
+    # Step 2: Search for the customer by email if not found by phone
+    response_by_email = requests.get(shopify_search_customer_by_email_url, headers=headers)
+
+    if response_by_email.status_code == 200 and response_by_email.json().get('customers'):
+        existing_customer_id = response_by_email.json()['customers'][0]['id']
+        logging.info(f"Customer found by email with ID: {existing_customer_id}")
+        return create_order_with_customer_id(existing_customer_id, first_name, last_name, email, phone, shipping_address, items, financial_status)
+
+    # Step 3: No customer found by phone or email, create a new customer
+    return create_order_with_new_customer(first_name, last_name, email, phone, shipping_address, items, financial_status)
+
+
+def create_order_with_customer_id(customer_id, first_name, last_name, email, phone, shipping_address, items, financial_status):
+    shopify_order_url = f"{SHOPIFY_STORE_URL}/admin/api/2023-04/orders.json"
+    headers = {
+        "X-Shopify-Access-Token": SHOPIFY_API_KEY,
+        "Content-Type": "application/json"
+    }
+
+    # Prepare the order payload with the existing customer ID
     order_data = {
         "order": {
-            "email": email,
-            "phone": phone,
+            "customer_id": customer_id,  # Use existing customer ID
             "financial_status": financial_status,
-            "customer": {
-                "first_name": first_name,
-                "last_name": last_name,
-                "email": email,
-                "phone": phone
-            },
             "line_items": [
                 {"title": item["name"], "quantity": int(float(item["quantity"])), "price": item["price"]} for item in items
             ],
@@ -291,18 +314,46 @@ def create_shopify_order(name, email, phone, shipping_address, items, financial_
         }
     }
 
-    response = requests.post(shopify_order_url, json=order_data, headers=headers)
-    
-    # Log the response for debugging
-    print(response.json())
+    # Send order request
+    order_response = requests.post(shopify_order_url, json=order_data, headers=headers)
 
-    if response.status_code == 201:
-        logging.info(f"Shopify order created successfully: {response.json()}")
-        return response.json()  # Return the created order details
+    if order_response.status_code == 201:
+        logging.info(f"Shopify order created successfully: {order_response.json()}")
+        return order_response.json()  # Return the created order details
     else:
-        logging.error(f"Failed to create order in Shopify. Status Code: {response.status_code}, Response: {response.text}")
-        print(f"Failed to create order: {response.status_code}")
+        logging.error(f"Failed to create order in Shopify. Status Code: {order_response.status_code}, Response: {order_response.text}")
         return None
+
+
+def create_order_with_new_customer(first_name, last_name, email, phone, shipping_address, items, financial_status):
+    shopify_customer_url = f"{SHOPIFY_STORE_URL}/admin/api/2023-04/customers.json"
+    headers = {
+        "X-Shopify-Access-Token": SHOPIFY_API_KEY,
+        "Content-Type": "application/json"
+    }
+
+    # Step 1: Create a new customer
+    customer_data = {
+        "customer": {
+            "first_name": first_name,
+            "last_name": last_name,
+            "email": email,
+            "phone": phone
+        }
+    }
+
+    customer_response = requests.post(shopify_customer_url, json=customer_data, headers=headers)
+
+    if customer_response.status_code == 201:
+        new_customer_id = customer_response.json()['customer']['id']
+        logging.info(f"New customer created with ID: {new_customer_id}")
+
+        # Step 2: Create the order with the new customer ID
+        return create_order_with_customer_id(new_customer_id, first_name, last_name, email, phone, shipping_address, items, financial_status)
+    else:
+        logging.error(f"Failed to create new customer in Shopify. Status Code: {customer_response.status_code}, Response: {customer_response.text}")
+        return None
+
 
 def update_shopify_order_status(order_id, status):
     shopify_order_url = f"{SHOPIFY_STORE_URL}/admin/api/2023-04/orders/{order_id}.json"
