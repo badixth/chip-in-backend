@@ -134,12 +134,62 @@ def create_chip_in_session():
 @app.route('/chipin-webhook', methods=['POST'])
 def chipin_webhook():
     try:
-        # Get the JSON data from the POST request
+        # Get the JSON data from the POST request sent by Chip In
         data = request.get_json()
         logging.info(f"Received Chip In webhook event: {data}")
 
-        # Process the webhook data (log it for now)
-        return jsonify({'status': 'success'}), 200
+        # Extract relevant fields from the webhook data
+        payment_status = data.get('status')
+        chip_in_order_id = data.get('id')  # Chip In order ID
+        client = data.get('client', {})
+        purchase = data.get('purchase', {})
+                
+        # Extract customer details
+        full_name = client.get('full_name')
+        email = client.get('email')
+        phone = client.get('phone')
+
+        # Extract shipping address from Chip In (you might need to adjust this based on Chip In's actual response)
+        address1 = client.get('shipping_street_address', '')
+        city = client.get('shipping_city', '')
+        province = client.get('shipping_state', '')
+        zip_code = client.get('shipping_zip_code', '')
+        country = client.get('shipping_country', '')
+
+        # Extract order items from Chip In
+        items = purchase.get('products', [])
+        
+        # Only proceed if the payment status is 'paid'
+        if payment_status == 'paid':
+            logging.info(f"Chip In order {chip_in_order_id} has been paid. Updating Shopify order.")
+
+            # Here you will create or update the order in Shopify using the previously captured order ID or details.
+            # Assuming `shopify_order_id` is captured earlier, you can call your `update_shopify_order_status` or create a new order.
+
+            # Create or update the Shopify order
+            shopify_order_response = create_shopify_order(
+                name=full_name,
+                email=email,
+                phone=phone,
+                shipping_address={
+                    'address1': address1,
+                    'city': city,
+                    'province': province,
+                    'zip': zip_code,
+                    'country': country
+                },
+                items=items,
+                financial_status='paid'  # Mark the order as paid
+            )
+
+            if shopify_order_response:
+                logging.info(f"Shopify order created or updated successfully: {shopify_order_response}")
+                return jsonify({'status': 'success', 'shopify_order_id': shopify_order_response.get('order', {}).get('id')}), 200
+            else:
+                return jsonify({'error': 'Failed to create/update Shopify order'}), 400
+        else:
+            logging.warning(f"Chip In order {chip_in_order_id} is not marked as paid. Status: {payment_status}")
+            return jsonify({'status': 'ignored'}), 200
 
     except Exception as e:
         logging.error(f"Error processing Chip In webhook: {e}")
