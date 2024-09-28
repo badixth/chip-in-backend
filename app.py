@@ -261,7 +261,7 @@ def create_shopify_order(name, email, phone, shipping_address, items, financial_
     }
 
     # Split full name into first_name and last_name
-    name_parts = full_name.split(" ", 1)
+    name_parts = name.split(" ", 1)
     first_name = name_parts[0]
     last_name = name_parts[1] if len(name_parts) > 1 else ""
 
