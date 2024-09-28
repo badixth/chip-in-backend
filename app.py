@@ -277,7 +277,7 @@ def create_shopify_order(name, email, phone, shipping_address, items, financial_
                 "phone": phone
             },
             "line_items": [
-                {"title": item["name"], "quantity": int(item["quantity"]), "price": item["price"]} for item in items
+                {"title": item["name"], "quantity": int(float(item["quantity"])), "price": item["price"]} for item in items
             ],
             "shipping_address": {
                 "first_name": first_name,
