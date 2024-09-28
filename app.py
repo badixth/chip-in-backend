@@ -86,7 +86,8 @@ def create_chip_in_session():
                 "shipping_country": country,
                 "shipping_city": city,
                 "shipping_zip_code": zip_code,
-                "shipping_state": province
+                "shipping_state": province,
+                "personal_code": notes
             },
             "purchase": {
                 "products": [
@@ -102,7 +103,7 @@ def create_chip_in_session():
             #    "province": province,
             #    "zip": zip_code,
             #    "country": country
-            }
+            
         }
 
         # Log the outgoing payload for debugging
