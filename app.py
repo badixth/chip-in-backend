@@ -91,7 +91,7 @@ def create_chip_in_session():
             },
             "purchase": {
                 "products": [
-                    {"name": item['name'], "price": int(item['price'] * 100), "quantity": item['quantity']} for item in items
+                    {"name": item['name'], "price": int(item['price']), "quantity": item['quantity']} for item in items
                 ],
                 "currency": "MYR"
             },
