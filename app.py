@@ -81,7 +81,12 @@ def create_chip_in_session():
                 "phone": phone,
                 "full_name": full_name,  # Send full name to Chip In if required
                 "first_name": first_name,  # Optionally send first and last names separately if needed
-                "last_name": last_name
+                "last_name": last_name,
+                "shipping_street_address": address1,
+                "shipping_country": country,
+                "shipping_city": city,
+                "shipping_zip_code": zip_code,
+                "shipping_state": province
             },
             "purchase": {
                 "products": [
@@ -91,12 +96,12 @@ def create_chip_in_session():
             },
             "notes": notes,
             "brand_id": CHIP_IN_BRAND_ID,
-            "shipping_address": {
-                "address1": address1,
-                "city": city,
-                "province": province,
-                "zip": zip_code,
-                "country": country
+            #"shipping_address": {
+            #    "address1": address1,
+            #    "city": city,
+            #    "province": province,
+            #    "zip": zip_code,
+            #    "country": country
             }
         }
 
@@ -125,13 +130,28 @@ def create_chip_in_session():
         logging.error(f"Error processing payment: {e}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/chipin-webhook', methods=['POST'])
+def chipin_webhook():
+    try:
+        # Get the JSON data from the POST request
+        data = request.get_json()
+        logging.info(f"Received Chip In webhook event: {data}")
+
+        # Process the webhook data (log it for now)
+        return jsonify({'status': 'success'}), 200
+
+    except Exception as e:
+        logging.error(f"Error processing Chip In webhook: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 
 @app.route('/', methods=['GET'])
 def index():
     return "Server is working!"
 
 def register_shopify_webhook():
-    shopify_webhook_url = f"https://{SHOPIFY_STORE_URL}/admin/api/2023-04/webhooks.json"
+    shopify_webhook_url = f"{SHOPIFY_STORE_URL}/admin/api/2023-04/webhooks.json"
     headers = {
         "X-Shopify-Access-Token": SHOPIFY_API_KEY,
         "Content-Type": "application/json"
@@ -181,7 +201,7 @@ def shopify_webhook():
 
 def create_shopify_order(name, email, phone, shipping_address, items, financial_status="paid"):
     # Shopify API URL
-    shopify_order_url = f"https://{SHOPIFY_STORE_URL}/admin/api/2023-04/orders.json"
+    shopify_order_url = f"{SHOPIFY_STORE_URL}/admin/api/2023-04/orders.json"
 
     headers = {
         "X-Shopify-Access-Token": SHOPIFY_API_KEY,
@@ -235,7 +255,7 @@ def create_shopify_order(name, email, phone, shipping_address, items, financial_
         return None
 
 def update_shopify_order_status(order_id, status):
-    shopify_order_url = f"https://{SHOPIFY_STORE_URL}/admin/api/2023-04/orders/{order_id}.json"
+    shopify_order_url = f"{SHOPIFY_STORE_URL}/admin/api/2023-04/orders/{order_id}.json"
     headers = {
         "X-Shopify-Access-Token": SHOPIFY_API_KEY,
         "Content-Type": "application/json"
