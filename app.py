@@ -251,6 +251,8 @@ def format_phone_number(phone):
     # If the phone number starts with 0, replace it with the Malaysian country code +60
     if phone.startswith('0'):
         phone = '+60' + phone[1:]
+    # Remove any spaces or non-numeric characters
+    phone = ''.join(filter(str.isdigit, phone))
     return phone
 
 
