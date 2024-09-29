@@ -293,11 +293,18 @@ def create_order_with_customer_id(customer_id, first_name, last_name, email, pho
         "Content-Type": "application/json"
     }
 
-    # Prepare the order payload with the existing customer ID
+    # Prepare the order payload with the existing customer ID and customer details
     order_data = {
         "order": {
             "customer_id": customer_id,  # Use existing customer ID
             "financial_status": financial_status,
+            "customer": {
+                "id": customer_id,
+                "first_name": first_name,
+                "last_name": last_name,
+                "email": email,
+                "phone": phone
+            },
             "line_items": [
                 {"title": item["name"], "quantity": int(float(item["quantity"])), "price": item["price"]} for item in items
             ],
@@ -313,6 +320,7 @@ def create_order_with_customer_id(customer_id, first_name, last_name, email, pho
             "note": "Order created via custom payment integration"
         }
     }
+
 
     # Send order request
     order_response = requests.post(shopify_order_url, json=order_data, headers=headers)
