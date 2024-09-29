@@ -252,7 +252,7 @@ def create_shopify_order(name, email, phone, shipping_address, items, financial_
                 "phone": phone
             },
             "line_items": [
-                {"title": item["name"], "quantity": int(float(item["quantity"])), "price": item["price"]} for item in items
+                {"title": item["name"], "quantity": int(float(item["quantity"])), "price": item["price"], "variant_id": item.get("variant_id", None)} for item in items
             ],
             "shipping_address": {
                 "first_name": first_name,
@@ -261,7 +261,8 @@ def create_shopify_order(name, email, phone, shipping_address, items, financial_
                 "city": shipping_address['city'],
                 "province": shipping_address['province'],
                 "zip": shipping_address['zip'],
-                "country": shipping_address['country']
+                "country": shipping_address['country'],
+                "phone": phone
             },
             "note": "Order created via custom payment integration"
         }
