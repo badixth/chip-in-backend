@@ -95,14 +95,14 @@ def create_chip_in_session():
                 "currency": "MYR"
             },
             "notes": notes,
-            "brand_id": CHIP_IN_BRAND_ID,
+            "brand_id": CHIP_IN_BRAND_ID
             #"shipping_address": {
             #    "address1": address1,
             #    "city": city,
             #    "province": province,
             #    "zip": zip_code,
             #    "country": country
-            }
+            
         }
 
         # Log the outgoing payload for debugging
