@@ -259,7 +259,7 @@ def create_shopify_order(name, email, phone, shipping_address, items, financial_
                 "last_name": last_name,
                 "address1": shipping_address['address1'],
                 "city": shipping_address['city'],
-                "province": shipping_address['province'],
+                "province": "MY-14",
                 "zip": shipping_address['zip'],
                 "country": shipping_address['country'],
                 "phone": phone
