@@ -48,7 +48,7 @@ def create_chip_in_session():
         shipping_address = data.get('shipping_address')
         notes = data.get('notes', '')  # Optional field with default value of empty string
         items = data.get('items')
-        shopify_order_id = data.get("order_id",'')  # Capture the Shopify Order ID
+        shopify_order_id = data.get("order_id")  # Capture the Shopify Order ID
 
         # Step 3: Split full_name into first_name and last_name
         name_parts = full_name.split(" ", 1)
@@ -103,6 +103,7 @@ def create_chip_in_session():
             #    "zip": zip_code,
             #    "country": country
             }
+        }
 
         # Log the outgoing payload for debugging
         logging.info(f"Payload sent to Chip In API: {payload}")
