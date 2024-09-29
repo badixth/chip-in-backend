@@ -33,16 +33,6 @@ CORS(app, resources={r"/*": {"origins": "*"}},
 logging.basicConfig(level=logging.INFO)
 logging.info(f"CHIP_IN_BRAND_ID: {CHIP_IN_BRAND_ID}")
 
-# Check if the response status is successful
-if response.status_code == 201 and response_data.get('checkout_url'):
-    return jsonify({'checkout_url': response_data['checkout_url']}), 201
-else:
-    logging.error(f"Chip In API Error: {response_data}")
-    return jsonify({
-        'error': 'Failed to create Chip In session',
-        'details': response_data
-    }), 400
-
 @app.route('/create-chip-in-session', methods=['POST'])
 def create_chip_in_session():
     try:
@@ -59,17 +49,7 @@ def create_chip_in_session():
         shipping_address = data.get('shipping_address')
         notes = data.get('notes', '')  # Optional field with default value of empty string
         items = data.get('items')
-        shopify_order_id = data.get("order_id")  # Capture the Shopify Order ID
-
-        # Step 3: Split full_name into first_name and last_name
-        name_parts = full_name.split(" ", 1)
-        first_name = name_parts[0]
-        last_name = name_parts[1] if len(name_parts) > 1 else ""  # Handle cases where no last name is provided
-
-
-        # Step 3.1: Check if all required fields are present
-        if not all([first_name, email, phone, shipping_address, items]):
-            return jsonify({'error': 'Missing required fields'}), 400
+        shopify_order_id = data.get("order_id", '')  # Capture the Shopify Order ID
 
         # Step 4: Prepare the payload for Chip In API
         chip_in_url = "https://gate.chip-in.asia/api/v1/purchases/"
@@ -91,8 +71,6 @@ def create_chip_in_session():
                 "email": email,
                 "phone": phone,
                 "full_name": full_name,  # Send full name to Chip In if required
-                "first_name": first_name,  # Optionally send first and last names separately if needed
-                "last_name": last_name,
                 "street_address": address1,
                 "country": province,
                 "city": city,
@@ -331,6 +309,5 @@ def create_shopify_order(name, email, phone, shipping_address, items, financial_
 
 
 # Start the Flask server
-if __name__ == '__main__':
-    register_shopify_webhook()  # Register webhook at server start
+if __name__ == '__main__':# Register webhook at server start
     app.run(debug=True)
