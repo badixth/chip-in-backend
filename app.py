@@ -1,4 +1,3 @@
-
 from flask import Flask, request, jsonify
 from sqlalchemy.orm import sessionmaker
 from models import Order, engine, Session
@@ -14,11 +13,10 @@ app = Flask(__name__)
 load_dotenv()  # This loads the .env file
 
 # Load Shopify and Chip In credentials from environment variables
-SHOPIFY_API_KEY = os.getenv('SHOPIFY_API_KEY') # This is now the access token
+SHOPIFY_API_KEY = os.getenv('SHOPIFY_API_KEY')  # This is now the access token
 SHOPIFY_STORE_URL = os.getenv('SHOPIFY_STORE_URL')
 CHIP_IN_API_KEY = os.getenv('CHIP_IN_API_KEY')
 CHIP_IN_BRAND_ID = os.getenv('CHIP_IN_BRAND_ID')
-
 
 # Use the session from models.py
 session = Session()
@@ -37,10 +35,7 @@ logging.info(f"CHIP_IN_BRAND_ID: {CHIP_IN_BRAND_ID}")
 def create_chip_in_session():
     try:
         # Step 1: Get the JSON data sent from the frontend
-        try:
-            data = request.get_json()
-        except Exception as e:
-            return jsonify({'error': 'Invalid JSON data', 'details': str(e)}), 400
+        data = request.get_json()
 
         # Step 2: Extract the required fields from the incoming data
         full_name = data.get('name')
@@ -51,10 +46,9 @@ def create_chip_in_session():
         items = data.get('items')
         shopify_order_id = data.get("order_id", '')  # Capture the Shopify Order ID
 
-
         # Step 4: Prepare the payload for Chip In API
         chip_in_url = "https://gate.chip-in.asia/api/v1/purchases/"
-        
+
         headers = {
             "Authorization": f"Bearer {CHIP_IN_API_KEY}",
             "Content-Type": "application/json"
@@ -92,13 +86,6 @@ def create_chip_in_session():
             },
             "notes": notes,
             "brand_id": CHIP_IN_BRAND_ID
-            #"shipping_address": {
-            #    "address1": address1,
-            #    "city": city,
-            #    "province": province,
-            #    "zip": zip_code,
-            #    "country": country
-            
         }
 
         # Log the outgoing payload for debugging
@@ -111,11 +98,6 @@ def create_chip_in_session():
         # Log the response from Chip In API for debugging
         logging.info(f"Chip In API Response: {response_data}")
 
-        if not all([first_name, email, phone, shipping_address, items]):
-            logging.error("Missing required fields in Chip In session request")
-            return jsonify({'error': 'Missing required fields'}), 400
-
-        # Check if the response status is successful
         if response.status_code == 201 and response_data.get('checkout_url'):
             return jsonify({'checkout_url': response_data['checkout_url']}), 201
         else:
@@ -127,6 +109,7 @@ def create_chip_in_session():
         # Log the error for debugging
         logging.error(f"Error processing payment: {e}")
         return jsonify({'error': str(e)}), 500
+
 
 @app.route('/chipin-webhook', methods=['POST'])
 def chipin_webhook():
@@ -160,9 +143,6 @@ def chipin_webhook():
         if payment_status == 'paid':
             logging.info(f"Chip In order {chip_in_order_id} has been paid. Updating Shopify order.")
 
-            # Here you will create or update the order in Shopify using the previously captured order ID or details.
-            # Assuming `shopify_order_id` is captured earlier, you can call your `update_shopify_order_status` or create a new order.
-
             # Create or update the Shopify order
             shopify_order_response = create_shopify_order(
                 name=full_name,
@@ -193,41 +173,8 @@ def chipin_webhook():
         return jsonify({'error': str(e)}), 500
 
 
-
-@app.route('/register-webhook', methods=['GET'])
-def register_shopify_webhook():
-    try:
-        shopify_webhook_url = f"{SHOPIFY_STORE_URL}/admin/api/2023-04/webhooks.json"
-        headers = {
-            "X-Shopify-Access-Token": SHOPIFY_API_KEY,
-            "Content-Type": "application/json"
-        }
-
-        webhook_data = {
-            "webhook": {
-                "topic": "orders/paid",
-                "address": "https://chip-in-backend-4531.onrender.com/shopify-webhook",  # Update with your actual server URL
-                "format": "json"
-            }
-        }
-
-        response = requests.post(shopify_webhook_url, json=webhook_data, headers=headers)
-
-        if response.status_code == 201:
-            logging.info("Webhook registered successfully")
-            return jsonify({"message": "Webhook registered successfully"}), 201
-        elif response.status_code == 422:
-            logging.error(f"Webhook already exists: {response.status_code}, {response.text}")
-            return jsonify({"error": "Webhook already exists"}), 422
-        else:
-            logging.error(f"Failed to register webhook: {response.status_code}, {response.text}")
-            return jsonify({"error": "Failed to register webhook"}), response.status_code
-    except Exception as e:
-        logging.error(f"Error registering webhook: {e}")
-        return jsonify({"error": str(e)}), 500
-
 @app.route('/register-shopify-webhook', methods=['GET'])
-def register_shopify_webhook():
+def register_shopify_webhook_route():
     try:
         shopify_webhook_url = f"{SHOPIFY_STORE_URL}/admin/api/2023-04/webhooks.json"
         headers = {
@@ -257,7 +204,8 @@ def register_shopify_webhook():
     except Exception as e:
         logging.error(f"Error registering webhook: {e}")
         return jsonify({"error": str(e)}), 500
-        
+
+
 # Webhook handler for incoming Shopify POST requests
 @app.route('/shopify-webhook', methods=['POST'])
 def handle_shopify_webhook():
@@ -282,8 +230,6 @@ def handle_shopify_webhook():
     except Exception as e:
         logging.error(f"Error processing Shopify webhook: {e}")
         return jsonify({'error': str(e)}), 500
-
-
 
 
 def create_shopify_order(name, email, phone, shipping_address, items, financial_status="paid"):
@@ -343,5 +289,5 @@ def create_shopify_order(name, email, phone, shipping_address, items, financial_
 
 
 # Start the Flask server
-if __name__ == '__main__':# Register webhook at server start
+if __name__ == '__main__':
     app.run(debug=True)
