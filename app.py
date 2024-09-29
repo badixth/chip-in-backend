@@ -96,7 +96,7 @@ def create_chip_in_session():
             },
             "purchase": {
                 "products": [
-                    {"name": item['name'], "price": int(item['price'] * 100), "quantity": item['quantity']} for item in items
+                    {"name": item['name'], "price": int(item['price']), "quantity": item['quantity']} for item in items
                 ],
                 "currency": "MYR"
             },
@@ -220,10 +220,15 @@ def register_shopify_webhook():
 
     response = requests.post(shopify_webhook_url, json=webhook_data, headers=headers)
 
-    if response.status_code == 201:
+if response.status_code == 201:
         logging.info("Webhook registered successfully")
+        return jsonify({"message": "Webhook registered successfully"}), 201
+    elif response.status_code == 422:
+        logging.error(f"Webhook already exists: {response.status_code}, {response.text}")
+        return jsonify({"error": "Webhook already exists"}), 422
     else:
-        logging.error(f"Failed to register webhook: {response.status_code}, {response.text}")        
+        logging.error(f"Failed to register webhook: {response.status_code}, {response.text}")
+        return jsonify({"error": "Failed to register webhook"}), response.status_code       
 
 @app.route('/shopify-webhook', methods=['POST'])
 def shopify_webhook():
@@ -284,11 +289,11 @@ def create_shopify_order(name, email, phone, shipping_address, items, financial_
             "shipping_address": {
                 "first_name": first_name,
                 "last_name": last_name,
-                "address1": shipping_address['address1'],
-                "city": shipping_address['city'],
-                "province": shipping_address['province'],
-                "zip": shipping_address['zip'],
-                "country": shipping_address['country']
+                "address1": shipping_address.get('address1', ''),
+                "city": shipping_address.get('city', ''),
+                "province": shipping_address.get('province', ''),
+                "zip": shipping_address.get('zip', ''),
+                "country": shipping_address.get('country', '')
             },
             "note": "Order created via custom payment integration"
         }
@@ -306,30 +311,6 @@ def create_shopify_order(name, email, phone, shipping_address, items, financial_
         logging.error(f"Failed to create order in Shopify. Status Code: {response.status_code}, Response: {response.text}")
         print(f"Failed to create order: {response.status_code}")
         return None
-
-def update_shopify_order_status(order_id, status):
-    shopify_order_url = f"{SHOPIFY_STORE_URL}/admin/api/2023-04/orders/{order_id}.json"
-    headers = {
-        "X-Shopify-Access-Token": SHOPIFY_API_KEY,
-        "Content-Type": "application/json"
-    }
-    
-    payload = {
-        "order": {
-            "id": order_id,
-            "financial_status": status
-        }
-    }
-
-    response = requests.put(shopify_order_url, json=payload, headers=headers)
-    
-    if response.status_code == 200:
-        logging.info(f"Order {order_id} updated successfully in Shopify.")
-        return True
-    else:
-        logging.error(f"Failed to update order status in Shopify. Status Code: {response.status_code}")
-        return False
-
 
 
 # Start the Flask server
