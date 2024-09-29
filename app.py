@@ -82,6 +82,11 @@ def create_chip_in_session():
                 "full_name": full_name,  # Send full name to Chip In if required
                 "first_name": first_name,  # Optionally send first and last names separately if needed
                 "last_name": last_name,
+                "street_address": address1,
+                "country": country,
+                "city": city,
+                "zip_code": zip_code,
+                "state": province,
                 "shipping_street_address": address1,
                 "shipping_country": country,
                 "shipping_city": city,
