@@ -33,6 +33,16 @@ CORS(app, resources={r"/*": {"origins": "*"}},
 logging.basicConfig(level=logging.INFO)
 logging.info(f"CHIP_IN_BRAND_ID: {CHIP_IN_BRAND_ID}")
 
+# Check if the response status is successful
+if response.status_code == 201 and response_data.get('checkout_url'):
+    return jsonify({'checkout_url': response_data['checkout_url']}), 201
+else:
+    logging.error(f"Chip In API Error: {response_data}")
+    return jsonify({
+        'error': 'Failed to create Chip In session',
+        'details': response_data
+    }), 400
+
 @app.route('/create-chip-in-session', methods=['POST'])
 def create_chip_in_session():
     try:
@@ -97,12 +107,12 @@ def create_chip_in_session():
             },
             "purchase": {
                 "products": [
-                    {"name": item['name'], "price": int(item['price']), "quantity": item['quantity']} for item in items
+                    {"name": item['name'], "price": int(item['price']*100), "quantity": item['quantity']} for item in items
                 ],
                 "currency": "MYR"
             },
             "notes": notes,
-            "brand_id": CHIP_IN_BRAND_ID,
+            "brand_id": CHIP_IN_BRAND_ID
             #"shipping_address": {
             #    "address1": address1,
             #    "city": city,
