@@ -1,3 +1,4 @@
+
 from flask import Flask, request, jsonify
 from sqlalchemy.orm import sessionmaker
 from models import Order, engine, Session
@@ -121,6 +122,10 @@ def create_chip_in_session():
         # Log the response from Chip In API for debugging
         logging.info(f"Chip In API Response: {response_data}")
 
+        if not all([first_name, email, phone, shipping_address, items]):
+            logging.error("Missing required fields in Chip In session request")
+            return jsonify({'error': 'Missing required fields'}), 400
+
         # Check if the response status is successful
         if response.status_code == 201 and response_data.get('checkout_url'):
             return jsonify({'checkout_url': response_data['checkout_url']}), 201
@@ -129,8 +134,6 @@ def create_chip_in_session():
                 'error': 'Failed to create Chip In session',
                 'details': response_data
             }), 400
-
-
     except Exception as e:
         # Log the error for debugging
         logging.error(f"Error processing payment: {e}")
@@ -204,31 +207,35 @@ def chipin_webhook():
 
 @app.route('/', methods=['GET'])
 def register_shopify_webhook():
-    shopify_webhook_url = f"{SHOPIFY_STORE_URL}/admin/api/2023-04/webhooks.json"
-    headers = {
-        "X-Shopify-Access-Token": SHOPIFY_API_KEY,
-        "Content-Type": "application/json"
-    }
-
-    webhook_data = {
-        "webhook": {
-            "topic": "orders/paid",
-            "address": "https://chip-in-backend-4531.onrender.com/shopify-webhook",  # Update with your actual server URL
-            "format": "json"
+    try:
+        shopify_webhook_url = f"{SHOPIFY_STORE_URL}/admin/api/2023-04/webhooks.json"
+        headers = {
+            "X-Shopify-Access-Token": SHOPIFY_API_KEY,
+            "Content-Type": "application/json"
         }
-    }
 
-    response = requests.post(shopify_webhook_url, json=webhook_data, headers=headers)
+        webhook_data = {
+            "webhook": {
+                "topic": "orders/paid",
+                "address": "https://chip-in-backend-4531.onrender.com/shopify-webhook",  # Update with your actual server URL
+                "format": "json"
+            }
+        }
 
-    if response.status_code == 201:
-        logging.info("Webhook registered successfully")
-        return jsonify({"message": "Webhook registered successfully"}), 201
-    elif response.status_code == 422:
-        logging.error(f"Webhook already exists: {response.status_code}, {response.text}")
-        return jsonify({"error": "Webhook already exists"}), 422
-    else:
-        logging.error(f"Failed to register webhook: {response.status_code}, {response.text}")
-        return jsonify({"error": "Failed to register webhook"}), response.status_code       
+        response = requests.post(shopify_webhook_url, json=webhook_data, headers=headers)
+
+        if response.status_code == 201:
+            logging.info("Webhook registered successfully")
+            return jsonify({"message": "Webhook registered successfully"}), 201
+        elif response.status_code == 422:
+            logging.error(f"Webhook already exists: {response.status_code}, {response.text}")
+            return jsonify({"error": "Webhook already exists"}), 422
+        else:
+            logging.error(f"Failed to register webhook: {response.status_code}, {response.text}")
+            return jsonify({"error": "Failed to register webhook"}), response.status_code
+    except Exception as e:
+        logging.error(f"Error registering webhook: {e}")
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/shopify-webhook', methods=['POST'])
 def shopify_webhook():
