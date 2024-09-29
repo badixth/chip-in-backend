@@ -83,7 +83,7 @@ def create_chip_in_session():
                 "first_name": first_name,  # Optionally send first and last names separately if needed
                 "last_name": last_name,
                 "street_address": address1,
-                "country": country,
+                "country": province,
                 "city": city,
                 "zip_code": zip_code,
                 "state": province,
@@ -201,6 +201,113 @@ def chipin_webhook():
         return jsonify({'error': str(e)}), 500
 
 
+
+@app.route('/', methods=['GET'])
+def register_shopify_webhook():
+    shopify_webhook_url = f"{SHOPIFY_STORE_URL}/admin/api/2023-04/webhooks.json"
+    headers = {
+        "X-Shopify-Access-Token": SHOPIFY_API_KEY,
+        "Content-Type": "application/json"
+    }
+
+    webhook_data = {
+        "webhook": {
+            "topic": "orders/paid",
+            "address": "https://chip-in-backend-4531.onrender.com/shopify-webhook",  # Update with your actual server URL
+            "format": "json"
+        }
+    }
+
+    response = requests.post(shopify_webhook_url, json=webhook_data, headers=headers)
+
+    if response.status_code == 201:
+        logging.info("Webhook registered successfully")
+    else:
+        logging.error(f"Failed to register webhook: {response.status_code}, {response.text}")        
+
+@app.route('/shopify-webhook', methods=['POST'])
+def shopify_webhook():
+    try:
+        data = request.get_json()
+        logging.info(f"Received Shopify webhook event: {data}")
+
+        # First try to get the ID at the root level
+        shopify_order_id = data.get('id')
+
+        # Get the financial status from the payload
+        financial_status = data.get('financial_status')
+
+        # Check if the financial status is 'paid'
+        if financial_status == 'paid':
+            logging.info(f"Shopify order {shopify_order_id} has been paid.")
+            return jsonify({'status': 'success', 'order_id': shopify_order_id}), 200
+        else:
+            logging.warning(f"Shopify order {shopify_order_id} financial status: {financial_status}")
+            return jsonify({'status': 'ignored'}), 200
+
+    except Exception as e:
+        logging.error(f"Error processing Shopify webhook: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+
+
+def create_shopify_order(name, email, phone, shipping_address, items, financial_status="paid"):
+    # Shopify API URL
+    shopify_order_url = f"{SHOPIFY_STORE_URL}/admin/api/2023-04/orders.json"
+
+    headers = {
+        "X-Shopify-Access-Token": SHOPIFY_API_KEY,
+        "Content-Type": "application/json"
+    }
+
+    # Split full name into first_name and last_name
+    name_parts = name.split(" ", 1)
+    first_name = name_parts[0]
+    last_name = name_parts[1] if len(name_parts) > 1 else ""
+
+    # Prepare the order payload
+    order_data = {
+        "order": {
+            "email": email,
+            "phone": phone,
+            "financial_status": financial_status,
+            "customer": {
+                "first_name": first_name,
+                "last_name": last_name,
+                "email": email,
+                "phone": phone
+            },
+            "line_items": [
+                {"title": item["name"], "quantity": int(float(item["quantity"])), "price": item["price"]} for item in items
+            ],
+            "shipping_address": {
+                "first_name": first_name,
+                "last_name": last_name,
+                "address1": shipping_address['address1'],
+                "city": shipping_address['city'],
+                "province": shipping_address['province'],
+                "zip": shipping_address['zip'],
+                "country": shipping_address['country']
+            },
+            "note": "Order created via custom payment integration"
+        }
+    }
+
+    response = requests.post(shopify_order_url, json=order_data, headers=headers)
+    
+    # Log the response for debugging
+    print(response.json())
+
+    if response.status_code == 201:
+        logging.info(f"Shopify order created successfully: {response.json()}")
+        return response.json()  # Return the created order details
+    else:
+        logging.error(f"Failed to create order in Shopify. Status Code: {response.status_code}, Response: {response.text}")
+        print(f"Failed to create order: {response.status_code}")
+        return None
+
+def update_shopify_order_status(order_id, status):
     shopify_order_url = f"{SHOPIFY_STORE_URL}/admin/api/2023-04/orders/{order_id}.json"
     headers = {
         "X-Shopify-Access-Token": SHOPIFY_API_KEY,
@@ -220,7 +327,7 @@ def chipin_webhook():
         logging.info(f"Order {order_id} updated successfully in Shopify.")
         return True
     else:
-        logging.error(f"Failed to update order in Shopify. Status Code: {response.status_code}")
+        logging.error(f"Failed to update order status in Shopify. Status Code: {response.status_code}")
         return False
 
 
