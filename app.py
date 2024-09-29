@@ -135,9 +135,10 @@ def chipin_webhook():
                 shipping_address={
                     "address1": data['client']['shipping_street_address'],
                     "city": data['client']['shipping_city'],
-                    "province": data['client']['shipping_state'],
+                    "province": "MY-14",
                     "zip": data['client']['shipping_zip_code'],
-                    "country": data['client']['shipping_country']
+                    "country": "MY",
+                    "phone": data['client']['phone'],
                 },
                 items=data['purchase']['products']
             )
@@ -261,7 +262,7 @@ def create_shopify_order(name, email, phone, shipping_address, items, financial_
                 "city": shipping_address['city'],
                 "province": "MY-14",
                 "zip": shipping_address['zip'],
-                "country": shipping_address['country'],
+                "country": "MY",
                 "phone": phone
             },
             "note": "Order created via custom payment integration"
