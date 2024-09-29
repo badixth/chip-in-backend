@@ -220,7 +220,7 @@ def register_shopify_webhook():
 
     response = requests.post(shopify_webhook_url, json=webhook_data, headers=headers)
 
-if response.status_code == 201:
+    if response.status_code == 201:
         logging.info("Webhook registered successfully")
         return jsonify({"message": "Webhook registered successfully"}), 201
     elif response.status_code == 422:
