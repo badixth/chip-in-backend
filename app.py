@@ -51,6 +51,7 @@ def create_chip_in_session():
         items = data.get('items')
         shopify_order_id = data.get("order_id", '')  # Capture the Shopify Order ID
 
+
         # Step 4: Prepare the payload for Chip In API
         chip_in_url = "https://gate.chip-in.asia/api/v1/purchases/"
         
@@ -193,7 +194,7 @@ def chipin_webhook():
 
 
 
-@app.route('/', methods=['GET'])
+@app.route('/register-webhook', methods=['GET'])
 def register_shopify_webhook():
     try:
         shopify_webhook_url = f"{SHOPIFY_STORE_URL}/admin/api/2023-04/webhooks.json"
@@ -225,8 +226,41 @@ def register_shopify_webhook():
         logging.error(f"Error registering webhook: {e}")
         return jsonify({"error": str(e)}), 500
 
+@app.route('/register-shopify-webhook', methods=['GET'])
+def register_shopify_webhook():
+    try:
+        shopify_webhook_url = f"{SHOPIFY_STORE_URL}/admin/api/2023-04/webhooks.json"
+        headers = {
+            "X-Shopify-Access-Token": SHOPIFY_API_KEY,
+            "Content-Type": "application/json"
+        }
+
+        webhook_data = {
+            "webhook": {
+                "topic": "orders/paid",
+                "address": "https://chip-in-backend-4531.onrender.com/shopify-webhook",  # Update with your actual server URL
+                "format": "json"
+            }
+        }
+
+        response = requests.post(shopify_webhook_url, json=webhook_data, headers=headers)
+
+        if response.status_code == 201:
+            logging.info("Webhook registered successfully")
+            return jsonify({"message": "Webhook registered successfully"}), 201
+        elif response.status_code == 422:
+            logging.error(f"Webhook already exists: {response.status_code}, {response.text}")
+            return jsonify({"error": "Webhook already exists"}), 422
+        else:
+            logging.error(f"Failed to register webhook: {response.status_code}, {response.text}")
+            return jsonify({"error": "Failed to register webhook"}), response.status_code
+    except Exception as e:
+        logging.error(f"Error registering webhook: {e}")
+        return jsonify({"error": str(e)}), 500
+        
+# Webhook handler for incoming Shopify POST requests
 @app.route('/shopify-webhook', methods=['POST'])
-def shopify_webhook():
+def handle_shopify_webhook():
     try:
         data = request.get_json()
         logging.info(f"Received Shopify webhook event: {data}")
