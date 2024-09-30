@@ -277,8 +277,6 @@ def create_shopify_order(name, email, phone, shipping_address, items, financial_
         # Customer exists, use the customer ID in the order payload
         order_data = {
             "order": {
-                "email": email,
-                "phone": phone,
                 "financial_status": financial_status,
                 "customer": {
                     "id": customer["id"]  # Use existing customer ID
