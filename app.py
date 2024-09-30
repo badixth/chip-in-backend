@@ -226,6 +226,7 @@ def shopify_webhook():
         return jsonify({'error': str(e)}), 500
 
 def find_shopify_customer_by_phone(phone):
+    logging.info(f"Searching for customer with phone: {phone}")
     shopify_customer_search_url = f"{SHOPIFY_STORE_URL}/admin/api/2023-04/customers/search.json?query=phone:{phone}"
     headers = {
         "X-Shopify-Access-Token": SHOPIFY_API_KEY,
@@ -238,6 +239,21 @@ def find_shopify_customer_by_phone(phone):
         customers = response.json().get("customers", [])
         if customers:
             return customers[0]  # Return the first customer if found
+    
+    # If no customer was found, try searching without the country code
+    if phone.startswith("+60"):
+        phone_without_country_code = phone[3:]
+        logging.info(f"Retrying search with phone number: {phone_without_country_code}")
+        
+        shopify_customer_search_url = f"{SHOPIFY_STORE_URL}/admin/api/2023-04/customers/search.json?query=phone:{phone_without_country_code}"
+        response = requests.get(shopify_customer_search_url, headers=headers)
+        logging.info(f"Customer search response (without country code): {response.json()}")
+        
+        if response.status_code == 200:
+            customers = response.json().get("customers", [])
+            if customers:
+                return customers[0]  # Return the first customer if found
+
     return None
 
 def create_shopify_order(name, email, phone, shipping_address, items, financial_status="paid"):
