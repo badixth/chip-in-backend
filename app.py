@@ -231,7 +231,7 @@ def create_shopify_order(name, email, phone, shipping_address, items, financial_
 
     # Shopify API URL
     shopify_order_url = f"{SHOPIFY_STORE_URL}/admin/api/2023-04/orders.json"
-    
+
     headers = {
         "X-Shopify-Access-Token": SHOPIFY_API_KEY,
         "Content-Type": "application/json"
@@ -242,41 +242,65 @@ def create_shopify_order(name, email, phone, shipping_address, items, financial_
     first_name = name_parts[0]
     last_name = name_parts[1] if len(name_parts) > 1 else ""
 
+    # Prepare the order payload, avoiding customer creation if a customer exists
     if customer:
-        customer_id = customer["id"]
-    else:
-        # No existing customer, so we create a new one
-        customer_id = None
-
-    # Prepare the order payload
-    order_data = {
-        "order": {
-            "email": email,
-            "phone": phone,
-            "financial_status": financial_status,
-            "customer": {
-                "id": customer_id,  # Use customer_id if found, otherwise create new customer
-                "first_name": first_name,
-                "last_name": last_name,
+         logging.info(f"Found existing customer with ID: {customer['id']}")
+        # Customer exists, use the customer ID in the order payload
+        order_data = {
+            "order": {
                 "email": email,
-                "phone": phone
-            },
-            "line_items": [
-                {"title": item["name"], "quantity": int(float(item["quantity"])), "price": item["price"]} for item in items
-            ],
-            "shipping_address": {
-                "first_name": first_name,
-                "last_name": last_name,
-                "address1": shipping_address['address1'],
-                "city": shipping_address['city'],
-                "province": "MY-14",
-                "zip": shipping_address['zip'],
-                "country": "MY",
-                "phone": phone
-            },
-            "note": "Order created via custom payment integration"
+                "phone": phone,
+                "financial_status": financial_status,
+                "customer": {
+                    "id": customer["id"]  # Use existing customer ID
+                },
+                "line_items": [
+                    {"title": item["name"], "quantity": int(float(item["quantity"])), "price": item["price"]} for item in items
+                ],
+                "shipping_address": {
+                    "first_name": first_name,
+                    "last_name": last_name,
+                    "address1": shipping_address['address1'],
+                    "city": shipping_address['city'],
+                    "province": "MY-14",
+                    "zip": shipping_address['zip'],
+                    "country": "MY",
+                    "phone": phone
+                },
+                "note": "Order created via custom payment integration"
+            }
         }
-    }
+    else:
+        logging.info("No existing customer found, creating a new one.")
+        # Customer does not exist, create a new customer in the order payload
+        order_data = {
+            "order": {
+                "email": email,
+                "phone": phone,
+                "financial_status": financial_status,
+                "customer": {
+                    "first_name": first_name,
+                    "last_name": last_name,
+                    "email": email,
+                    "phone": phone
+                },
+                "line_items": [
+                    {"title": item["name"], "quantity": int(float(item["quantity"])), "price": item["price"]} for item in items
+                ],
+                "shipping_address": {
+                    "first_name": first_name,
+                    "last_name": last_name,
+                    "address1": shipping_address['address1'],
+                    "city": shipping_address['city'],
+                    "province": "MY-14",
+                    "zip": shipping_address['zip'],
+                    "country": "MY",
+                    "phone": phone
+                },
+                "note": "Order created via custom payment integration"
+            }
+        }
+
 
     response = requests.post(shopify_order_url, json=order_data, headers=headers)
     
