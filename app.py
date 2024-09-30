@@ -225,6 +225,18 @@ def shopify_webhook():
         logging.error(f"Error processing Shopify webhook: {e}")
         return jsonify({'error': str(e)}), 500
 
+def find_shopify_customer_by_phone(phone):
+    shopify_customer_search_url = f"{SHOPIFY_STORE_URL}/admin/api/2023-04/customers/search.json?query=phone:{phone}"
+    headers = {
+        "X-Shopify-Access-Token": SHOPIFY_API_KEY,
+        "Content-Type": "application/json"
+    }
+    response = requests.get(shopify_customer_search_url, headers=headers)
+    if response.status_code == 200:
+        customers = response.json().get("customers", [])
+        if customers:
+            return customers[0]  # Return the first customer if found
+    return None
 
 def create_shopify_order(name, email, phone, shipping_address, items, financial_status="paid"):
     customer = find_shopify_customer_by_phone(phone)
@@ -242,7 +254,6 @@ def create_shopify_order(name, email, phone, shipping_address, items, financial_
     first_name = name_parts[0]
     last_name = name_parts[1] if len(name_parts) > 1 else ""
 
-    # Prepare the order payload, avoiding customer creation if a customer exists
     if customer:
         logging.info(f"Found existing customer with ID: {customer['id']}")
         # Customer exists, use the customer ID in the order payload
@@ -301,9 +312,8 @@ def create_shopify_order(name, email, phone, shipping_address, items, financial_
             }
         }
 
-
     response = requests.post(shopify_order_url, json=order_data, headers=headers)
-    
+
     # Log the response for debugging
     response_json = response.json()
     logging.info(f"Shopify order creation response: {response_json}")
@@ -314,21 +324,6 @@ def create_shopify_order(name, email, phone, shipping_address, items, financial_
     else:
         logging.error(f"Failed to create order in Shopify. Status Code: {response.status_code}, Response: {response.text}")
         return None
-
-
-# Helper function to find a Shopify customer by phone
-def find_shopify_customer_by_phone(phone):
-    shopify_customer_search_url = f"{SHOPIFY_STORE_URL}/admin/api/2023-04/customers/search.json?query=phone:{phone}"
-    headers = {
-        "X-Shopify-Access-Token": SHOPIFY_API_KEY,
-        "Content-Type": "application/json"
-    }
-    response = requests.get(shopify_customer_search_url, headers=headers)
-    if response.status_code == 201:
-        customers = response.json().get("customers", [])
-        if customers:
-            return customers[0]  # Return the first customer if found
-    return None
 
 
 # Start the Flask server
