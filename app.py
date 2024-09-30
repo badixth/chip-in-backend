@@ -45,7 +45,9 @@ def create_chip_in_session():
         shipping_address = data.get('shipping_address')
         notes = data.get('notes', '')  # Optional field with default value of empty string
         items = data.get('items')
-        shopify_order_id = data.get("order_id")  # Capture the Shopify Order ID
+        shopify_order_id = data.get("order_id", '')  # Capture the Shopify Order ID
+        extra_data = data.get('extra')  # Capture the extra data for variant_id
+
 
         # Step 3: Split full_name into first_name and last_name
         name_parts = full_name.split(" ", 1)
@@ -82,13 +84,16 @@ def create_chip_in_session():
                 "shipping_country": country,
                 "shipping_city": city,
                 "shipping_zip_code": zip_code,
-                "shipping_state": province
+                "shipping_state": province,
             },
             "purchase": {
                 "products": [
-                    {"name": item['name'], "price": int(item['price']), "quantity": item['quantity']} for item in items
+                    {"name": item['name'], "price": int(item['price']), "quantity": item['quantity'], } for item in items
                 ],
                 "currency": "MYR"
+            },
+            "transaction_data": {
+                "extra": extra_data
             },
             "notes": notes,
             "brand_id": CHIP_IN_BRAND_ID
@@ -123,6 +128,24 @@ def chipin_webhook():
         data = request.get_json()
         logging.info(f"Received Chip In webhook event: {data}")
 
+        # Extract variant_id from the transaction.extra field
+        extra_data = data['transaction_data']['extra']  # This contains the variant_id information
+        variant_ids = [item['variant_id'] for item in extra_data]  # List of variant_ids for each product
+        
+        # Prepare the list of items to include variant_id
+        products = data['purchase']['products']
+
+        # Merge the variant_id with the products (assuming they are in the same order)
+        items = []
+        for index, product in enumerate(products):
+            items.append({
+                "name": product['name'],
+                "price": product['price'],  # Assuming Chip In provides price in cents
+                "quantity": int(float(product['quantity'])),  # Ensure quantity is an integer
+                "variant_id": variant_ids[index] if index < len(variant_ids) else None  # Match variant_id with product
+            })
+
+
         # Process the webhook data (log it for now)
         if data.get('status') == 'paid':
             logging.info(f"Payment received for Chip In order ID: {data['id']}. Creating Shopify order...")
@@ -132,6 +155,7 @@ def chipin_webhook():
                 name=data['client']['full_name'],
                 email=data['client']['email'],
                 phone=data['client']['phone'],
+                variant_id=data['client']['personal_code'],
                 shipping_address={
                     "address1": data['client']['shipping_street_address'],
                     "city": data['client']['shipping_city'],
@@ -140,6 +164,7 @@ def chipin_webhook():
                     "country": "MY",
                     "phone": data['client']['phone'],
                 },
+                
                 items=data['purchase']['products']
             )
 
