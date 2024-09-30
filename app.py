@@ -244,7 +244,7 @@ def create_shopify_order(name, email, phone, shipping_address, items, financial_
 
     # Prepare the order payload, avoiding customer creation if a customer exists
     if customer:
-         logging.info(f"Found existing customer with ID: {customer['id']}")
+        logging.info(f"Found existing customer with ID: {customer['id']}")
         # Customer exists, use the customer ID in the order payload
         order_data = {
             "order": {
