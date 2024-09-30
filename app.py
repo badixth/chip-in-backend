@@ -324,7 +324,7 @@ def find_shopify_customer_by_phone(phone):
         "Content-Type": "application/json"
     }
     response = requests.get(shopify_customer_search_url, headers=headers)
-    if response.status_code == 200:
+    if response.status_code == 201:
         customers = response.json().get("customers", [])
         if customers:
             return customers[0]  # Return the first customer if found
