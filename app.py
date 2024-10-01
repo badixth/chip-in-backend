@@ -56,6 +56,11 @@ def create_chip_in_session():
         if not all([first_name, email, phone, shipping_address, items]):
             return jsonify({'error': 'Missing required fields'}), 400
 
+        customer = find_shopify_customer_by_phone(phone)
+
+        if customer: 
+            return jsonify({'error': 'Phone number already exist'}), 400
+
         # Step 4: Prepare the payload for Chip In API
         chip_in_url = "https://gate.chip-in.asia/api/v1/purchases/"
         
