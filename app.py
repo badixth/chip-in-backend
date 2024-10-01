@@ -69,7 +69,6 @@ def create_chip_in_session():
                     "email": email,
                     "firstName": first_name,
                     "lastName": last_name,
-                    "phone": phone
                 },
                 }
             response = requests.post(f"{SHOPIFY_STORE_URL}/admin/api/2023-04/customers/{customer['id']}.json", json=data, headers=headers)
