@@ -72,7 +72,7 @@ def create_chip_in_session():
                     "phone": phone
                 },
                 }
-            response = requests.post(f"{SHOPIFY_STORE_URL}/admin/api/2023-04/customers/{customer["id"]}.json", json=data, headers=headers)
+            response = requests.post(f"{SHOPIFY_STORE_URL}/admin/api/2023-04/customers/{customer['id']}.json", json=data, headers=headers)
             logging.info("Updated customer informatin")
 
         # Step 4: Prepare the payload for Chip In API
