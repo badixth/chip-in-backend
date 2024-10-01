@@ -58,8 +58,22 @@ def create_chip_in_session():
 
         customer = find_shopify_customer_by_phone(phone)
 
-        if customer: 
-            return jsonify({'error': 'Phone number already exist'}), 400
+        if customer:
+            headers = {
+                "X-Shopify-Access-Token": SHOPIFY_API_KEY,
+                "Content-Type": "application/json"
+            }
+            data={
+                "customer": {
+                    "id": customer["id"],  # Use existing customer ID
+                    "email": email,
+                    "firstName": first_name,
+                    "lastName": last_name,
+                    "phone": phone
+                },
+                }
+            response = requests.post(f"{SHOPIFY_STORE_URL}/admin/api/2023-04/customers/{customer["id"]}.json", json=data, headers=headers)
+            logging.info("Updated customer informatin")
 
         # Step 4: Prepare the payload for Chip In API
         chip_in_url = "https://gate.chip-in.asia/api/v1/purchases/"
