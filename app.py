@@ -72,7 +72,7 @@ def create_chip_in_session():
                 },
                 }
             response = requests.post(f"{SHOPIFY_STORE_URL}/admin/api/2023-04/customers/{customer['id']}.json", json=data, headers=headers)
-            logging.info("Updated customer informatin")
+            logging.info(f"Updated customer information: {customer}")
 
         # Step 4: Prepare the payload for Chip In API
         chip_in_url = "https://gate.chip-in.asia/api/v1/purchases/"
@@ -297,7 +297,9 @@ def create_shopify_order(name, email, phone, shipping_address, items, financial_
             "order": {
                 "financial_status": financial_status,
                 "customer": {
-                    "id": customer["id"]  # Use existing customer ID
+                    "id": customer["id"],  # Use existing customer ID
+                    "first_name": first_name,
+                    "last_name": last_name,
                 },
                 "line_items": [
                     {"title": item["name"], "quantity": int(float(item["quantity"])), "price": item["price"]} for item in items
