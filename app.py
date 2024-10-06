@@ -161,7 +161,7 @@ def chipin_webhook():
                 shipping_address={
                     "address1": data['client']['shipping_street_address'],
                     "city": data['client']['shipping_city'],
-                    "province": "MY-14",
+                    "province": data['client']['shipping_state'],
                     "zip": data['client']['shipping_zip_code'],
                     "country": "MY",
                     "phone": data['client']['phone'],
@@ -319,7 +319,7 @@ def create_shopify_order(name, email, phone, shipping_address, items, financial_
                     "last_name": last_name,
                     "address1": shipping_address['address1'],
                     "city": shipping_address['city'],
-                    "province": "MY-14",
+                    "province": shipping_address['province'],
                     "zip": shipping_address['zip'],
                     "country": "MY",
                     "phone": phone
@@ -350,7 +350,7 @@ def create_shopify_order(name, email, phone, shipping_address, items, financial_
                     "last_name": last_name,
                     "address1": shipping_address['address1'],
                     "city": shipping_address['city'],
-                    "province": "MY-14",
+                    "province": shipping_address['province'],
                     "zip": shipping_address['zip'],
                     "country": "MY",
                     "phone": phone
