@@ -56,15 +56,16 @@ def create_chip_in_session():
         if not all([first_name, email, phone, shipping_address, items]):
             return jsonify({'error': 'Missing required fields'}), 400
 
+        headers = {
+            "X-Shopify-Access-Token": SHOPIFY_API_KEY,
+            "Content-Type": "application/json"
+        }
+        
         customer = find_shopify_customer_by_phone(phone)
         response = requests.get(f"{SHOPIFY_STORE_URL}/admin/api/2023-04/customers/{customer['id']}.json", headers=headers)
         logging.info(f"Before update: {response}")
 
         if customer:
-            headers = {
-                "X-Shopify-Access-Token": SHOPIFY_API_KEY,
-                "Content-Type": "application/json"
-            }
             data={
                 "customer": {
                     "id": customer["id"],  # Use existing customer ID
