@@ -77,7 +77,7 @@ def create_chip_in_session():
                 },
                 }
             response = requests.post(f"{SHOPIFY_STORE_URL}/admin/api/2024-10/customers/{customer['id']}.json", json=data, headers=headers)
-            logging.info(f"POST customer information update: {response.json()}")
+            logging.info(f"POST customer information update: {response.content}")
             response = requests.get(f"{SHOPIFY_STORE_URL}/admin/api/2024-10/customers/{customer['id']}.json", headers=headers)
             logging.info(f"Updated customer information: {response.json()}")
 
@@ -124,7 +124,7 @@ def create_chip_in_session():
 
         # Step 5: Send the request to Chip In API
         response = requests.post(chip_in_url, json=payload, headers=headers)
-        logging.info(f"POST chip in purchase: {response.json()}")
+        logging.info(f"POST chip in purchase: {response.content}")
         response_data = response.json()
 
         # Log the response from Chip In API for debugging
@@ -192,7 +192,7 @@ def check_existing_webhook():
     }
 
     response = requests.get(shopify_webhook_url, headers=headers)
-    logging.info(f"GET shopify webhook: {response.json()}")
+    logging.info(f"GET shopify webhook: {response.content}")
     if response.status_code == 200:
         existing_webhooks = response.json().get('webhooks', [])
         for webhook in existing_webhooks:
@@ -221,7 +221,7 @@ def register_shopify_webhook():
     }
 
     response = requests.post(shopify_webhook_url, json=webhook_data, headers=headers)
-    logging.info(f"POST shopify webhook: {response.json()}")
+    logging.info(f"POST shopify webhook: {response.content}")
 
     if response.status_code == 201:
         logging.info("Webhook registered successfully")
@@ -261,7 +261,7 @@ def find_shopify_customer_by_phone(phone):
         "Content-Type": "application/json"
     }
     response = requests.get(shopify_customer_search_url, headers=headers)
-    logging.info(f"Customer search response: {response.json()}")
+    logging.info(f"Customer search response: {response.content}")
 
     if response.status_code == 200:
         customers = response.json().get("customers", [])
@@ -275,7 +275,7 @@ def find_shopify_customer_by_phone(phone):
         
         shopify_customer_search_url = f"{SHOPIFY_STORE_URL}/admin/api/2024-10/customers/search.json?query=phone:{phone_without_country_code}"
         response = requests.get(shopify_customer_search_url, headers=headers)
-        logging.info(f"Customer search response (without country code): {response.json()}")
+        logging.info(f"Customer search response (without country code): {response.content}")
         
         if response.status_code == 200:
             customers = response.json().get("customers", [])
@@ -359,7 +359,7 @@ def create_shopify_order(name, email, phone, shipping_address, items, financial_
         }
 
     response = requests.post(shopify_order_url, json=order_data, headers=headers)
-    logging.info(f"POST shopify order url: {response.json()}")
+    logging.info(f"POST shopify order url: {response.content}")
 
     # Log the response for debugging
     response_json = response.json()
