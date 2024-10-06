@@ -45,6 +45,7 @@ def create_chip_in_session():
         shipping_address = data.get('shipping_address')
         notes = data.get('notes', '')  # Optional field with default value of empty string
         items = data.get('items')
+        logging.info(f"order items: {items}")
         shopify_order_id = data.get("order_id")  # Capture the Shopify Order ID
 
         # Step 3: Split full_name into first_name and last_name
@@ -110,7 +111,7 @@ def create_chip_in_session():
             },
             "purchase": {
                 "products": [
-                    {"name": item['name'], "price": int(item['price']), "quantity": item['quantity']} for item in items
+                    {"name": item['name'], "price": int(item['price']), "quantity": item['quantity'], "category": item["variant_id"]} for item in items
                 ],
                 "currency": "MYR"
             },
