@@ -111,7 +111,7 @@ def create_chip_in_session():
             },
             "purchase": {
                 "products": [
-                    {"name": item['name'], "price": int(item['price']), "quantity": item['quantity'], "category": item["variant_id"]} for item in items
+                    {"name": item['name'], "price": int(item['price']*100), "quantity": item['quantity'], "category": item["variant_id"]} for item in items
                 ],
                 "currency": "MYR"
             },
@@ -312,7 +312,7 @@ def create_shopify_order(name, email, phone, shipping_address, items, financial_
                     "last_name": last_name,
                 },
                 "line_items": [
-                    {"title": item["name"], "quantity": int(float(item["quantity"])), "price": item["price"], "variant_id": item["category"]} for item in items
+                    {"title": item["name"], "quantity": int(float(item["quantity"])), "price": item["price"]/100, "variant_id": item["category"]} for item in items
                 ],
                 "shipping_address": {
                     "first_name": first_name,
@@ -343,7 +343,7 @@ def create_shopify_order(name, email, phone, shipping_address, items, financial_
                     "phone": phone
                 },
                 "line_items": [
-                    {"title": item["name"], "quantity": int(float(item["quantity"])), "price": item["price"], "variant_id": item["category"]} for item in items
+                    {"title": item["name"], "quantity": int(float(item["quantity"])), "price": item["price"]/100, "variant_id": item["category"]} for item in items
                 ],
                 "shipping_address": {
                     "first_name": first_name,
