@@ -61,10 +61,10 @@ def create_chip_in_session():
                 "Content-Type": "application/json"
             }
 
+        customer = find_shopify_customer_by_phone(phone)
+
         response = requests.get(f"{SHOPIFY_STORE_URL}/admin/api/2024-10/customers/{customer['id']}.json", headers=headers)
         logging.info(f"Before update customer: {response.json()}")
-
-        customer = find_shopify_customer_by_phone(phone)
 
         if customer:
             
