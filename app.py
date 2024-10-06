@@ -60,10 +60,10 @@ def create_chip_in_session():
             "X-Shopify-Access-Token": SHOPIFY_API_KEY,
             "Content-Type": "application/json"
         }
-        
+
         customer = find_shopify_customer_by_phone(phone)
         response = requests.get(f"{SHOPIFY_STORE_URL}/admin/api/2023-04/customers/{customer['id']}.json", headers=headers)
-        logging.info(f"Before update: {response}")
+        logging.info(f"Before update: {response.content}")
 
         if customer:
             data={
@@ -76,7 +76,7 @@ def create_chip_in_session():
                 }
             response = requests.post(f"{SHOPIFY_STORE_URL}/admin/api/2023-04/customers/{customer['id']}.json", json=data, headers=headers)
             response = requests.get(f"{SHOPIFY_STORE_URL}/admin/api/2023-04/customers/{customer['id']}.json", headers=headers)
-            logging.info(f"Updated customer information: {response}")
+            logging.info(f"Updated customer information: {response.content}")
 
         # Step 4: Prepare the payload for Chip In API
         chip_in_url = "https://gate.chip-in.asia/api/v1/purchases/"
