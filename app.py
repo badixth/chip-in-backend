@@ -57,6 +57,7 @@ def create_chip_in_session():
             return jsonify({'error': 'Missing required fields'}), 400
 
         customer = find_shopify_customer_by_phone(phone)
+        logging.info(f"Customer information before update: {customer}")
 
         if customer:
             headers = {
