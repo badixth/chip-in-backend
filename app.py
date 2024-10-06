@@ -324,7 +324,8 @@ def create_shopify_order(name, email, phone, shipping_address, items, financial_
                     "country": "MY",
                     "phone": phone
                 },
-                "note": "Order created via custom payment integration"
+                "note": "Order created via custom payment integration",
+                "send_receipt": True
             }
         }
     else:
@@ -354,7 +355,8 @@ def create_shopify_order(name, email, phone, shipping_address, items, financial_
                     "country": "MY",
                     "phone": phone
                 },
-                "note": "Order created via custom payment integration"
+                "note": "Order created via custom payment integration",
+                "send_receipt": True
             }
         }
 
