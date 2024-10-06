@@ -57,15 +57,16 @@ def create_chip_in_session():
             return jsonify({'error': 'Missing required fields'}), 400
 
         headers = {
-            "X-Shopify-Access-Token": SHOPIFY_API_KEY,
-            "Content-Type": "application/json"
-        }
+                "X-Shopify-Access-Token": SHOPIFY_API_KEY,
+                "Content-Type": "application/json"
+            }
+
+        response = requests.get(f"{SHOPIFY_STORE_URL}/admin/api/2024-10/customers/{customer['id']}.json", headers=headers)
 
         customer = find_shopify_customer_by_phone(phone)
-        response = requests.get(f"{SHOPIFY_STORE_URL}/admin/api/2023-04/customers", headers=headers)
-        logging.info(f"Before update: {response.content}")
 
         if customer:
+            
             data={
                 "customer": {
                     "id": customer["id"],  # Use existing customer ID
@@ -74,9 +75,9 @@ def create_chip_in_session():
                     "lastName": last_name,
                 },
                 }
-            response = requests.post(f"{SHOPIFY_STORE_URL}/admin/api/2023-04/customers/{customer['id']}.json", json=data, headers=headers)
-            response = requests.get(f"{SHOPIFY_STORE_URL}/admin/api/2023-04/customers", headers=headers)
-            logging.info(f"Updated customer information: {response.content}")
+            response = requests.post(f"{SHOPIFY_STORE_URL}/admin/api/2024-10/customers/{customer['id']}.json", json=data, headers=headers)
+            response = requests.get(f"{SHOPIFY_STORE_URL}/admin/api/2024-10/customers/{customer['id']}.json", headers=headers)
+            logging.info(f"Updated customer information: {customer}")
 
         # Step 4: Prepare the payload for Chip In API
         chip_in_url = "https://gate.chip-in.asia/api/v1/purchases/"
@@ -181,7 +182,7 @@ def chipin_webhook():
 
 def check_existing_webhook():
     # Check if the webhook already exists to avoid duplicating registration
-    shopify_webhook_url = f"{SHOPIFY_STORE_URL}/admin/api/2023-04/webhooks.json"
+    shopify_webhook_url = f"{SHOPIFY_STORE_URL}/admin/api/2024-10/webhooks.json"
     headers = {
         "X-Shopify-Access-Token": SHOPIFY_API_KEY,
         "Content-Type": "application/json"
@@ -201,7 +202,7 @@ def register_shopify_webhook():
     if check_existing_webhook():
         return  # Skip registration if the webhook already exists
 
-    shopify_webhook_url = f"{SHOPIFY_STORE_URL}/admin/api/2023-04/webhooks.json"
+    shopify_webhook_url = f"{SHOPIFY_STORE_URL}/admin/api/2024-10/webhooks.json"
     headers = {
         "X-Shopify-Access-Token": SHOPIFY_API_KEY,
         "Content-Type": "application/json"
@@ -249,7 +250,7 @@ def shopify_webhook():
 
 def find_shopify_customer_by_phone(phone):
     logging.info(f"Searching for customer with phone: {phone}")
-    shopify_customer_search_url = f"{SHOPIFY_STORE_URL}/admin/api/2023-04/customers/search.json?query=phone:{phone}"
+    shopify_customer_search_url = f"{SHOPIFY_STORE_URL}/admin/api/2024-10/customers/search.json?query=phone:{phone}"
     headers = {
         "X-Shopify-Access-Token": SHOPIFY_API_KEY,
         "Content-Type": "application/json"
@@ -267,7 +268,7 @@ def find_shopify_customer_by_phone(phone):
         phone_without_country_code = phone[3:]
         logging.info(f"Retrying search with phone number: {phone_without_country_code}")
         
-        shopify_customer_search_url = f"{SHOPIFY_STORE_URL}/admin/api/2023-04/customers/search.json?query=phone:{phone_without_country_code}"
+        shopify_customer_search_url = f"{SHOPIFY_STORE_URL}/admin/api/2024-10/customers/search.json?query=phone:{phone_without_country_code}"
         response = requests.get(shopify_customer_search_url, headers=headers)
         logging.info(f"Customer search response (without country code): {response.json()}")
         
@@ -282,7 +283,7 @@ def create_shopify_order(name, email, phone, shipping_address, items, financial_
     customer = find_shopify_customer_by_phone(phone)
 
     # Shopify API URL
-    shopify_order_url = f"{SHOPIFY_STORE_URL}/admin/api/2023-04/orders.json"
+    shopify_order_url = f"{SHOPIFY_STORE_URL}/admin/api/2024-10/orders.json"
 
     headers = {
         "X-Shopify-Access-Token": SHOPIFY_API_KEY,
