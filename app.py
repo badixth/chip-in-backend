@@ -67,7 +67,6 @@ def create_chip_in_session():
         logging.info(f"Before update customer: {response.json()}")
 
         if customer:
-            
             data={
                 "customer": {
                     "id": customer["id"],  # Use existing customer ID
@@ -76,7 +75,7 @@ def create_chip_in_session():
                     "lastName": last_name,
                 },
                 }
-            response = requests.post(f"{SHOPIFY_STORE_URL}/admin/api/2024-10/customers/{customer['id']}.json", json=data, headers=headers)
+            response = requests.put(f"{SHOPIFY_STORE_URL}/admin/api/2024-10/customers/{customer['id']}.json", json=data, headers=headers)
             logging.info(f"POST customer information update: {response.content}")
             response = requests.get(f"{SHOPIFY_STORE_URL}/admin/api/2024-10/customers/{customer['id']}.json", headers=headers)
             logging.info(f"Updated customer information: {response.json()}")
