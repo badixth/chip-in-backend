@@ -57,7 +57,8 @@ def create_chip_in_session():
             return jsonify({'error': 'Missing required fields'}), 400
 
         customer = find_shopify_customer_by_phone(phone)
-        logging.info(f"Customer information before update: {customer}")
+        response = requests.get(f"{SHOPIFY_STORE_URL}/admin/api/2023-04/customers/{customer['id']}.json", headers=headers)
+        logging.info(f"Before update: {response}")
 
         if customer:
             headers = {
@@ -73,7 +74,8 @@ def create_chip_in_session():
                 },
                 }
             response = requests.post(f"{SHOPIFY_STORE_URL}/admin/api/2023-04/customers/{customer['id']}.json", json=data, headers=headers)
-            logging.info(f"Updated customer information: {customer}")
+            response = requests.get(f"{SHOPIFY_STORE_URL}/admin/api/2023-04/customers/{customer['id']}.json", headers=headers)
+            logging.info(f"Updated customer information: {response}")
 
         # Step 4: Prepare the payload for Chip In API
         chip_in_url = "https://gate.chip-in.asia/api/v1/purchases/"
