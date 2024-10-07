@@ -9,11 +9,11 @@ headers = {
     "Content-Type": "application/json"
 }
 
-# Payload with the public key, event type, and callback URL
+# Payload with the new live public key, event type, and callback URL
 payload = {
     "title": "Chip In Webhook",
     "all_events": True,
-    "public_key": "-----BEGIN PUBLIC KEY-----\nMIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEAuyGnHmDXWx/tKuQjwNiE\nldsgwMA4yFUcy4W6LEUqvEFf+/CwvFhrheWi6yRECoVdwP6Jb2OBPEcMb05d1jsK\nhk/PHuwL4j4wWX2uqamok8ZypZyiJTtwN7VtfvXUYJQ5yitoUNS1rj2a6D15gClX\ngaNAqV4sPXwJSnZzFVWbawa23eze7dcoxyVPHmMlEcN3Gsfs7iCEYh2KW5u5Y3dz\n46+BJu4ciDBI21Lj0rR3E1PT/D6teOg8zyXbsupkLMjkNt1ngYpxD/+86lJ/OWuL\n8J8vmrIDFILv+xpyMg2YwMzGOALG2syy4L79mchS4RVWzZG/3sLn212Rs5bvWIGZ\nyG8uMB+Qk7ySfLGpa/6K5VS/J14gAqylA49bDBwvu6AuaR5YMhhsq4htZuN8kphf\nnLlECbAuUCGUh0Ngj8fs46dYIM1xD4rGQiVnSZKcriLDK5tOfux+NASS7/sKooIP\nRDcBw1bdVctacoQDE5ic1AlY8cIvsT0enUQt+k6ee2Y5AgMBAAE=\n-----END PUBLIC KEY-----\n",  # Replace with your actual public key
+    "public_key": "-----BEGIN PUBLIC KEY-----\nMIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEAxndobfnBwKtqUUgGhcsP\n3Ehj9b9I6Hx8aMJbYGzCfwo7T9U9ua4lF3efLqnhX82V1/JHP1h7GjL9dnrDTE/W\nobZ7mzr+gVq511M55NqK/fGwJ7JJGtJDIvcoyrvhDDuI20zxYb7WMUq4q8/hk/2n\nrOD7P+yQnxpz/pTPMSKWcihax5d5mf5LzyccZtXtyZPBTNRByNrPFd6+0Z+uJKO7\nC5TTkmr9IK8+ZjByD2H5y/GjCisJCkW0QkFhYQMKAuwiSKoVcWI6j7uFSf3vfida\nuASBZ6dXfdgweRQkhqd4qJvoxZSIhlLwR2PTr18ZWm7Pz/YnezS2XVDy0Snbea24\nPzg/kEeD8SGK8Tk6pQxXKuQ+5FLmIoqP6aF5BlMnc0XT2ArYrI+ptC3jMxdnI0xS\n4LXMJqwCCURs/kbljgXKS+wyfVOIKQpZo7ErDZjaXO8d0rpwcpbXaNjGCKdgTsV0\nHRvUnhl8cieiaD/VjD/LiHYmLQTmn/Aprma4lFQxNmzxAgMBAAE=\n-----END PUBLIC KEY-----\n",  # Replace with your actual live public key
     "events": ["purchase.created"],
     "callback": "https://chip-in-backend-4531.onrender.com/chipin-webhook"  # Replace with your actual backend URL
 }
