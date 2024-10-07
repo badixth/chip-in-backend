@@ -65,6 +65,24 @@ def create_chip_in_session():
         if not all([first_name, email, phone, shipping_address, items]):
             return jsonify({"error": "Missing required fields"}), 400
 
+        customer = find_shopify_customer_by_email(email)
+        if customer and phone.strip("+60") != customer["phone"]:
+            hint = ""
+
+            first_stage = 0.3
+            second_stage = 0.7
+            third_stage = 1.0
+
+            for index, char in enumerate(phone):
+                if (index + 1)/len(phone) < first_stage:
+                    hint += char
+                elif first_stage <= (index + 1)/len(phone) < second_stage:
+                    hint += "*"
+                elif (index + 1)/len(phone) <= third_stage:
+                    hint += char
+
+            return jsonify({"error": f"This email is tied to an existing phone number, please use {hint}!"}), 422
+
         # Commented out as it is causing an unwanted error
         # headers = {
         #         "X-Shopify-Access-Token": SHOPIFY_API_KEY,
@@ -340,7 +358,12 @@ def find_shopify_customer_by_email(email):
 
 
 def create_shopify_order(
-    name, email, phone, shipping_address, items, financial_status="paid"
+    name,
+    email,
+    phone,
+    shipping_address,
+    items,
+    financial_status="paid",
 ):
     customer = find_shopify_customer_by_email(email)
 
@@ -367,7 +390,6 @@ def create_shopify_order(
                     "id": customer["id"],  # Use existing customer ID
                     "first_name": first_name,
                     "last_name": last_name,
-                    "phone": customer["phone"],
                 },
                 "line_items": [
                     {
