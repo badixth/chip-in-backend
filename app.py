@@ -66,24 +66,33 @@ def create_chip_in_session():
         if not all([first_name, email, phone, shipping_address, items]):
             return jsonify({"error": "Missing required fields"}), 400
 
-        customer = find_shopify_customer_by_email(email)
-        logging.info("aaaaaaaaaaaaaaaaaaaaa", customer, "BBBBBBBBBBBBBBBBBBBBBBBBBBBB", phone)
-        if customer and phone.strip("+60") != customer["phone"]:
-            hint = ""
+        # customer = find_shopify_customer_by_email(email)
+        # logging.info(
+        #     "aaaaaaaaaaaaaaaaaaaaa", customer, "BBBBBBBBBBBBBBBBBBBBBBBBBBBB", phone
+        # )
+        # if customer and phone.strip("+60") != customer["phone"]:
+        #     hint = ""
 
-            first_stage = 0.3
-            second_stage = 0.7
-            third_stage = 1.0
+        #     first_stage = 0.3
+        #     second_stage = 0.7
+        #     third_stage = 1.0
 
-            for index, char in enumerate(phone):
-                if (index + 1)/len(phone) < first_stage:
-                    hint += char
-                elif first_stage <= (index + 1)/len(phone) < second_stage:
-                    hint += "*"
-                elif (index + 1)/len(phone) <= third_stage:
-                    hint += char
+        #     for index, char in enumerate(phone):
+        #         if (index + 1) / len(phone) < first_stage:
+        #             hint += char
+        #         elif first_stage <= (index + 1) / len(phone) < second_stage:
+        #             hint += "*"
+        #         elif (index + 1) / len(phone) <= third_stage:
+        #             hint += char
 
-            return jsonify({"error": f"This email is tied to an existing phone number, please use {hint}!"}), 422
+        #     return (
+        #         jsonify(
+        #             {
+        #                 "error": f"This email is tied to an existing phone number, please use {hint}!"
+        #             }
+        #         ),
+        #         422,
+        #     )
 
         # Commented out as it is causing an unwanted error
         # headers = {
@@ -421,14 +430,11 @@ def create_shopify_order(
         # Customer does not exist, create a new customer in the order payload
         order_data = {
             "order": {
-                "email": email,
-                "phone": phone,
                 "financial_status": financial_status,
                 "customer": {
                     "first_name": first_name,
                     "last_name": last_name,
                     "email": email,
-                    "phone": phone,
                 },
                 "line_items": [
                     {
