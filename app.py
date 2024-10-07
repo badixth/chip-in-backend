@@ -367,6 +367,7 @@ def create_shopify_order(
                     "id": customer["id"],  # Use existing customer ID
                     "first_name": first_name,
                     "last_name": last_name,
+                    "phone": customer["phone"],
                 },
                 "line_items": [
                     {
@@ -403,6 +404,7 @@ def create_shopify_order(
                     "first_name": first_name,
                     "last_name": last_name,
                     "email": email,
+                    "phone": phone,
                 },
                 "line_items": [
                     {
