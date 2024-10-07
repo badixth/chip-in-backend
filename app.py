@@ -6,6 +6,7 @@ import os
 from flask_cors import CORS
 import requests
 import logging
+import traceback
 
 app = Flask(__name__)
 
@@ -178,7 +179,7 @@ def create_chip_in_session():
                 400,
             )
     except Exception as e:
-        logging.error(f"Error processing payment: {e}")
+        logging.error(f"Error processing payment: {traceback.format_exc()}")
         return jsonify({"error": str(e)}), 500
 
 
