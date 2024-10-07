@@ -66,6 +66,7 @@ def create_chip_in_session():
             return jsonify({"error": "Missing required fields"}), 400
 
         customer = find_shopify_customer_by_email(email)
+        logging.info("aaaaaaaaaaaaaaaaaaaaa", customer, "BBBBBBBBBBBBBBBBBBBBBBBBBBBB", phone)
         if customer and phone.strip("+60") != customer["phone"]:
             hint = ""
 
