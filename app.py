@@ -168,7 +168,7 @@ def find_shopify_customer_by_phone(phone):
             "Content-Type": "application/json"
         }
         response = requests.get(shopify_customer_search_url, headers=headers)
-        logging.info(f"customer query response:",response.content)
+        logging.info(f"customer query response: {response.content}")
         
         if response.status_code == 200:
             customers = response.json().get("customers", [])
