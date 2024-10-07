@@ -13,88 +13,97 @@ app = Flask(__name__)
 load_dotenv()  # This loads the .env file
 
 # Load Shopify and Chip In credentials from environment variables
-SHOPIFY_API_KEY = os.getenv('SHOPIFY_API_KEY') # This is now the access token
-SHOPIFY_STORE_URL = os.getenv('SHOPIFY_STORE_URL')
-CHIP_IN_API_KEY = os.getenv('CHIP_IN_API_KEY')
-CHIP_IN_BRAND_ID = os.getenv('CHIP_IN_BRAND_ID')
+SHOPIFY_API_KEY = os.getenv("SHOPIFY_API_KEY")  # This is now the access token
+SHOPIFY_STORE_URL = os.getenv("SHOPIFY_STORE_URL")
+CHIP_IN_API_KEY = os.getenv("CHIP_IN_API_KEY")
+CHIP_IN_BRAND_ID = os.getenv("CHIP_IN_BRAND_ID")
 
 
 # Use the session from models.py
 session = Session()
 
 # Enable CORS for the Shopify domain
-CORS(app, resources={r"/*": {"origins": "*"}},
-     supports_credentials=True,
-     methods=["GET", "POST", "OPTIONS"],
-     allow_headers=["Content-Type", "Authorization"])
+CORS(
+    app,
+    resources={r"/*": {"origins": "*"}},
+    supports_credentials=True,
+    methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"],
+)
 
 # Setup logging to display incoming payloads
 logging.basicConfig(level=logging.INFO)
 logging.info(f"CHIP_IN_BRAND_ID: {CHIP_IN_BRAND_ID}")
 
-@app.route('/create-chip-in-session', methods=['POST'])
+
+@app.route("/create-chip-in-session", methods=["POST"])
 def create_chip_in_session():
     try:
         # Step 1: Get the JSON data sent from the frontend
         data = request.get_json()
-        
+
         # Step 2: Extract the required fields from the incoming data
-        full_name = data.get('name')
-        email = data.get('email')
-        phone = data.get('phone')
-        shipping_address = data.get('shipping_address')
-        notes = data.get('notes', '')  # Optional field with default value of empty string
-        items = data.get('items')
+        full_name = data.get("name")
+        email = data.get("email")
+        phone = data.get("phone")
+        shipping_address = data.get("shipping_address")
+        notes = data.get(
+            "notes", ""
+        )  # Optional field with default value of empty string
+        items = data.get("items")
         logging.info(f"order items: {items}")
         shopify_order_id = data.get("order_id")  # Capture the Shopify Order ID
 
         # Step 3: Split full_name into first_name and last_name
         name_parts = full_name.split(" ", 1)
         first_name = name_parts[0]
-        last_name = name_parts[1] if len(name_parts) > 1 else ""  # Handle cases where no last name is provided
+        last_name = (
+            name_parts[1] if len(name_parts) > 1 else ""
+        )  # Handle cases where no last name is provided
 
         # Step 3.1: Check if all required fields are present
         if not all([first_name, email, phone, shipping_address, items]):
-            return jsonify({'error': 'Missing required fields'}), 400
+            return jsonify({"error": "Missing required fields"}), 400
 
-        headers = {
-                "X-Shopify-Access-Token": SHOPIFY_API_KEY,
-                "Content-Type": "application/json"
-            }
+        # Commented out as it is causing an unwanted error
+        # headers = {
+        #         "X-Shopify-Access-Token": SHOPIFY_API_KEY,
+        #         "Content-Type": "application/json"
+        #     }
 
-        customer = find_shopify_customer_by_phone(phone)
+        # customer = find_shopify_customer_by_phone(phone)
 
-        response = requests.get(f"{SHOPIFY_STORE_URL}/admin/api/2024-10/customers/{customer['id']}.json", headers=headers)
-        logging.info(f"Before update customer: {response.json()}")
+        # response = requests.get(f"{SHOPIFY_STORE_URL}/admin/api/2024-10/customers/{customer['id']}.json", headers=headers)
+        # logging.info(f"Before update customer: {response.json()}")
 
-        if customer:
-            data={
-                "customer": {
-                    "id": customer["id"],  # Use existing customer ID
-                    "email": email,
-                    "firstName": first_name,
-                    "lastName": last_name,
-                },
-                }
-            response = requests.put(f"{SHOPIFY_STORE_URL}/admin/api/2024-10/customers/{customer['id']}.json", json=data, headers=headers)
-            logging.info(f"POST customer information update: {response.content}")
-            response = requests.get(f"{SHOPIFY_STORE_URL}/admin/api/2024-10/customers/{customer['id']}.json", headers=headers)
-            logging.info(f"Updated customer information: {response.json()}")
+        # if customer:
+        #     data={
+        #         "customer": {
+        #             "id": customer["id"],  # Use existing customer ID
+        #             "email": email,
+        #             "firstName": first_name,
+        #             "lastName": last_name,
+        #         },
+        #         }
+        #     response = requests.put(f"{SHOPIFY_STORE_URL}/admin/api/2024-10/customers/{customer['id']}.json", json=data, headers=headers)
+        #     logging.info(f"POST customer information update: {response.content}")
+        #     response = requests.get(f"{SHOPIFY_STORE_URL}/admin/api/2024-10/customers/{customer['id']}.json", headers=headers)
+        #     logging.info(f"Updated customer information: {response.json()}")
 
         # Step 4: Prepare the payload for Chip In API
         chip_in_url = "https://gate.chip-in.asia/api/v1/purchases/"
-        
+
         headers = {
             "Authorization": f"Bearer {CHIP_IN_API_KEY}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
         }
 
         # Extract the shipping address parts properly
-        address1 = shipping_address.get('address1')
-        city = shipping_address.get('city')
-        province = shipping_address.get('province')
-        zip_code = shipping_address.get('zip')
-        country = shipping_address.get('country')
+        address1 = shipping_address.get("address1")
+        city = shipping_address.get("city")
+        province = shipping_address.get("province")
+        zip_code = shipping_address.get("zip")
+        country = shipping_address.get("country")
 
         payload = {
             "client": {
@@ -111,12 +120,18 @@ def create_chip_in_session():
             },
             "purchase": {
                 "products": [
-                    {"name": item['name'], "price": int(item['price']*100), "quantity": item['quantity'], "category": item["variant_id"]} for item in items
+                    {
+                        "name": item["name"],
+                        "price": int(item["price"] * 100),
+                        "quantity": item["quantity"],
+                        "category": item["variant_id"],
+                    }
+                    for item in items
                 ],
-                "currency": "MYR"
+                "currency": "MYR",
             },
             "notes": notes,
-            "brand_id": CHIP_IN_BRAND_ID
+            "brand_id": CHIP_IN_BRAND_ID,
         }
 
         # Log the outgoing payload for debugging
@@ -131,18 +146,24 @@ def create_chip_in_session():
         logging.info(f"Chip In API Response: {response_data}")
 
         # Check if the response status is successful
-        if response.status_code == 201 and response_data.get('checkout_url'):
-            return jsonify({'checkout_url': response_data['checkout_url']}), 201
+        if response.status_code == 201 and response_data.get("checkout_url"):
+            return jsonify({"checkout_url": response_data["checkout_url"]}), 201
         else:
-            return jsonify({
-                'error': 'Failed to create Chip In session',
-                'details': response_data
-            }), 400
+            return (
+                jsonify(
+                    {
+                        "error": "Failed to create Chip In session",
+                        "details": response_data,
+                    }
+                ),
+                400,
+            )
     except Exception as e:
         logging.error(f"Error processing payment: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({"error": str(e)}), 500
 
-@app.route('/chipin-webhook', methods=['POST'])
+
+@app.route("/chipin-webhook", methods=["POST"])
 def chipin_webhook():
     try:
         # Get the JSON data from the POST request
@@ -150,37 +171,41 @@ def chipin_webhook():
         logging.info(f"Received Chip In webhook event: {data}")
 
         # Process the webhook data (log it for now)
-        if data.get('status') == 'paid':
-            logging.info(f"Payment received for Chip In order ID: {data['id']}. Creating Shopify order...")
+        if data.get("status") == "paid":
+            logging.info(
+                f"Payment received for Chip In order ID: {data['id']}. Creating Shopify order..."
+            )
 
             # Create Shopify order
             shopify_order_response = create_shopify_order(
-                name=data['client']['full_name'],
-                email=data['client']['email'],
-                phone=data['client']['phone'],
+                name=data["client"]["full_name"],
+                email=data["client"]["email"],
+                phone=data["client"]["phone"],
                 shipping_address={
-                    "address1": data['client']['shipping_street_address'],
-                    "city": data['client']['shipping_city'],
-                    "province": data['client']['shipping_state'],
-                    "zip": data['client']['shipping_zip_code'],
+                    "address1": data["client"]["shipping_street_address"],
+                    "city": data["client"]["shipping_city"],
+                    "province": data["client"]["shipping_state"],
+                    "zip": data["client"]["shipping_zip_code"],
                     "country": "MY",
-                    "phone": data['client']['phone'],
+                    "phone": data["client"]["phone"],
                 },
-                items=data['purchase']['products']
+                items=data["purchase"]["products"],
             )
 
             if shopify_order_response:
-                logging.info(f"Shopify order created successfully: {shopify_order_response}")
-                return jsonify({'status': 'success'}), 200
+                logging.info(
+                    f"Shopify order created successfully: {shopify_order_response}"
+                )
+                return jsonify({"status": "success"}), 200
             else:
                 logging.error("Failed to create Shopify order")
-                return jsonify({'error': 'Failed to create Shopify order'}), 400
+                return jsonify({"error": "Failed to create Shopify order"}), 400
         else:
             logging.warning(f"Chip In order status not paid: {data['status']}")
-            return jsonify({'status': 'ignored'}), 200
+            return jsonify({"status": "ignored"}), 200
     except Exception as e:
         logging.error(f"Error processing Chip In webhook: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({"error": str(e)}), 500
 
 
 def check_existing_webhook():
@@ -188,15 +213,19 @@ def check_existing_webhook():
     shopify_webhook_url = f"{SHOPIFY_STORE_URL}/admin/api/2024-10/webhooks.json"
     headers = {
         "X-Shopify-Access-Token": SHOPIFY_API_KEY,
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
     }
 
     response = requests.get(shopify_webhook_url, headers=headers)
     logging.info(f"GET shopify webhook: {response.content}")
     if response.status_code == 200:
-        existing_webhooks = response.json().get('webhooks', [])
+        existing_webhooks = response.json().get("webhooks", [])
         for webhook in existing_webhooks:
-            if webhook['address'] == "https://chip-in-backend-4531.onrender.com/shopify-webhook" and webhook['topic'] == "orders/paid":
+            if (
+                webhook["address"]
+                == "https://chip-in-backend-4531.onrender.com/shopify-webhook"
+                and webhook["topic"] == "orders/paid"
+            ):
                 logging.info("Shopify webhook already registered.")
                 return True
     return False
@@ -209,14 +238,14 @@ def register_shopify_webhook():
     shopify_webhook_url = f"{SHOPIFY_STORE_URL}/admin/api/2024-10/webhooks.json"
     headers = {
         "X-Shopify-Access-Token": SHOPIFY_API_KEY,
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
     }
 
     webhook_data = {
         "webhook": {
             "topic": "orders/paid",
             "address": "https://chip-in-backend-4531.onrender.com/shopify-webhook",  # Update with your actual server URL
-            "format": "json"
+            "format": "json",
         }
     }
 
@@ -226,39 +255,44 @@ def register_shopify_webhook():
     if response.status_code == 201:
         logging.info("Webhook registered successfully")
     else:
-        logging.error(f"Failed to register webhook: {response.status_code}, {response.text}")
+        logging.error(
+            f"Failed to register webhook: {response.status_code}, {response.text}"
+        )
 
 
-@app.route('/shopify-webhook', methods=['POST'])
+@app.route("/shopify-webhook", methods=["POST"])
 def shopify_webhook():
     try:
         data = request.get_json()
         logging.info(f"Received Shopify webhook event: {data}")
 
         # First try to get the ID at the root level
-        shopify_order_id = data.get('id')
+        shopify_order_id = data.get("id")
 
         # Get the financial status from the payload
-        financial_status = data.get('financial_status')
+        financial_status = data.get("financial_status")
 
         # Check if the financial status is 'paid'
-        if financial_status == 'paid':
+        if financial_status == "paid":
             logging.info(f"Shopify order {shopify_order_id} has been paid.")
-            return jsonify({'status': 'success', 'order_id': shopify_order_id}), 200
+            return jsonify({"status": "success", "order_id": shopify_order_id}), 200
         else:
-            logging.warning(f"Shopify order {shopify_order_id} financial status: {financial_status}")
-            return jsonify({'status': 'ignored'}), 200
+            logging.warning(
+                f"Shopify order {shopify_order_id} financial status: {financial_status}"
+            )
+            return jsonify({"status": "ignored"}), 200
 
     except Exception as e:
         logging.error(f"Error processing Shopify webhook: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({"error": str(e)}), 500
+
 
 def find_shopify_customer_by_phone(phone):
     logging.info(f"Searching for customer with phone: {phone}")
     shopify_customer_search_url = f"{SHOPIFY_STORE_URL}/admin/api/2024-10/customers/search.json?query=phone:{phone}"
     headers = {
         "X-Shopify-Access-Token": SHOPIFY_API_KEY,
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
     }
     response = requests.get(shopify_customer_search_url, headers=headers)
     logging.info(f"Customer search response: {response.content}")
@@ -267,16 +301,18 @@ def find_shopify_customer_by_phone(phone):
         customers = response.json().get("customers", [])
         if customers:
             return customers[0]  # Return the first customer if found
-    
+
     # If no customer was found, try searching without the country code
     if phone.startswith("+60"):
         phone_without_country_code = phone[3:]
         logging.info(f"Retrying search with phone number: {phone_without_country_code}")
-        
+
         shopify_customer_search_url = f"{SHOPIFY_STORE_URL}/admin/api/2024-10/customers/search.json?query=phone:{phone_without_country_code}"
         response = requests.get(shopify_customer_search_url, headers=headers)
-        logging.info(f"Customer search response (without country code): {response.content}")
-        
+        logging.info(
+            f"Customer search response (without country code): {response.content}"
+        )
+
         if response.status_code == 200:
             customers = response.json().get("customers", [])
             if customers:
@@ -284,15 +320,36 @@ def find_shopify_customer_by_phone(phone):
 
     return None
 
-def create_shopify_order(name, email, phone, shipping_address, items, financial_status="paid"):
-    customer = find_shopify_customer_by_phone(phone)
+
+def find_shopify_customer_by_email(email):
+    logging.info(f"Searching for customer with email: {email}")
+    shopify_customer_search_url = f"{SHOPIFY_STORE_URL}/admin/api/2024-10/customers/search.json?query=email:{email}"
+    headers = {
+        "X-Shopify-Access-Token": SHOPIFY_API_KEY,
+        "Content-Type": "application/json",
+    }
+    response = requests.get(shopify_customer_search_url, headers=headers)
+    logging.info(f"Customer search response: {response.content}")
+
+    if response.status_code == 200:
+        customers = response.json().get("customers", [])
+        if customers:
+            return customers[0]  # Return the first customer if found
+
+    return None
+
+
+def create_shopify_order(
+    name, email, phone, shipping_address, items, financial_status="paid"
+):
+    customer = find_shopify_customer_by_email(email)
 
     # Shopify API URL
     shopify_order_url = f"{SHOPIFY_STORE_URL}/admin/api/2024-10/orders.json"
 
     headers = {
         "X-Shopify-Access-Token": SHOPIFY_API_KEY,
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
     }
 
     # Split full name into first_name and last_name
@@ -312,20 +369,26 @@ def create_shopify_order(name, email, phone, shipping_address, items, financial_
                     "last_name": last_name,
                 },
                 "line_items": [
-                    {"title": item["name"], "quantity": int(float(item["quantity"])), "price": item["price"]/100, "variant_id": item["category"]} for item in items
+                    {
+                        "title": item["name"],
+                        "quantity": int(float(item["quantity"])),
+                        "price": item["price"] / 100,
+                        "variant_id": item["category"],
+                    }
+                    for item in items
                 ],
                 "shipping_address": {
                     "first_name": first_name,
                     "last_name": last_name,
-                    "address1": shipping_address['address1'],
-                    "city": shipping_address['city'],
-                    "province": shipping_address['province'],
-                    "zip": shipping_address['zip'],
+                    "address1": shipping_address["address1"],
+                    "city": shipping_address["city"],
+                    "province": shipping_address["province"],
+                    "zip": shipping_address["zip"],
                     "country": "MY",
-                    "phone": phone
+                    "phone": phone,
                 },
                 "note": "Order created via custom payment integration",
-                "send_receipt": True
+                "send_receipt": True,
             }
         }
     else:
@@ -340,23 +403,28 @@ def create_shopify_order(name, email, phone, shipping_address, items, financial_
                     "first_name": first_name,
                     "last_name": last_name,
                     "email": email,
-                    "phone": phone
                 },
                 "line_items": [
-                    {"title": item["name"], "quantity": int(float(item["quantity"])), "price": item["price"]/100, "variant_id": item["category"]} for item in items
+                    {
+                        "title": item["name"],
+                        "quantity": int(float(item["quantity"])),
+                        "price": item["price"] / 100,
+                        "variant_id": item["category"],
+                    }
+                    for item in items
                 ],
                 "shipping_address": {
                     "first_name": first_name,
                     "last_name": last_name,
-                    "address1": shipping_address['address1'],
-                    "city": shipping_address['city'],
-                    "province": shipping_address['province'],
-                    "zip": shipping_address['zip'],
+                    "address1": shipping_address["address1"],
+                    "city": shipping_address["city"],
+                    "province": shipping_address["province"],
+                    "zip": shipping_address["zip"],
                     "country": "MY",
-                    "phone": phone
+                    "phone": phone,
                 },
                 "note": "Order created via custom payment integration",
-                "send_receipt": True
+                "send_receipt": True,
             }
         }
 
@@ -371,11 +439,13 @@ def create_shopify_order(name, email, phone, shipping_address, items, financial_
         logging.info(f"Shopify order created successfully: {response_json}")
         return response_json  # Return the created order details
     else:
-        logging.error(f"Failed to create order in Shopify. Status Code: {response.status_code}, Response: {response.text}")
+        logging.error(
+            f"Failed to create order in Shopify. Status Code: {response.status_code}, Response: {response.text}"
+        )
         return None
 
 
 # Start the Flask server
-if __name__ == '__main__':
+if __name__ == "__main__":
     register_shopify_webhook()  # Register webhook at server start if needed
     app.run(debug=True)
