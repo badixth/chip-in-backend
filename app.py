@@ -66,59 +66,6 @@ def create_chip_in_session():
         if not all([first_name, email, phone, shipping_address, items]):
             return jsonify({"error": "Missing required fields"}), 400
 
-        # customer = find_shopify_customer_by_email(email)
-        # logging.info(
-        #     "aaaaaaaaaaaaaaaaaaaaa", customer, "BBBBBBBBBBBBBBBBBBBBBBBBBBBB", phone
-        # )
-        # if customer and phone.strip("+60") != customer["phone"]:
-        #     hint = ""
-
-        #     first_stage = 0.3
-        #     second_stage = 0.7
-        #     third_stage = 1.0
-
-        #     for index, char in enumerate(phone):
-        #         if (index + 1) / len(phone) < first_stage:
-        #             hint += char
-        #         elif first_stage <= (index + 1) / len(phone) < second_stage:
-        #             hint += "*"
-        #         elif (index + 1) / len(phone) <= third_stage:
-        #             hint += char
-
-        #     return (
-        #         jsonify(
-        #             {
-        #                 "error": f"This email is tied to an existing phone number, please use {hint}!"
-        #             }
-        #         ),
-        #         422,
-        #     )
-
-        # Commented out as it is causing an unwanted error
-        # headers = {
-        #         "X-Shopify-Access-Token": SHOPIFY_API_KEY,
-        #         "Content-Type": "application/json"
-        #     }
-
-        # customer = find_shopify_customer_by_phone(phone)
-
-        # response = requests.get(f"{SHOPIFY_STORE_URL}/admin/api/2024-10/customers/{customer['id']}.json", headers=headers)
-        # logging.info(f"Before update customer: {response.json()}")
-
-        # if customer:
-        #     data={
-        #         "customer": {
-        #             "id": customer["id"],  # Use existing customer ID
-        #             "email": email,
-        #             "firstName": first_name,
-        #             "lastName": last_name,
-        #         },
-        #         }
-        #     response = requests.put(f"{SHOPIFY_STORE_URL}/admin/api/2024-10/customers/{customer['id']}.json", json=data, headers=headers)
-        #     logging.info(f"POST customer information update: {response.content}")
-        #     response = requests.get(f"{SHOPIFY_STORE_URL}/admin/api/2024-10/customers/{customer['id']}.json", headers=headers)
-        #     logging.info(f"Updated customer information: {response.json()}")
-
         # Step 4: Prepare the payload for Chip In API
         chip_in_url = "https://gate.chip-in.asia/api/v1/purchases/"
 
@@ -126,6 +73,11 @@ def create_chip_in_session():
             "Authorization": f"Bearer {CHIP_IN_API_KEY}",
             "Content-Type": "application/json",
         }
+
+        # Prepare the success_redirect URL with dynamic data (e.g., order_id)
+        success_redirect_url = (
+            f"{SHOPIFY_STORE_URL}/pages/thank-you-page?order_id={shopify_order_id}&status=paid"
+        )      
 
         # Extract the shipping address parts properly
         address1 = shipping_address.get("address1")
@@ -158,6 +110,7 @@ def create_chip_in_session():
                     for item in items
                 ],
                 "currency": "MYR",
+                "success_redirect": success_redirect_url,  # Add the success_redirect URL here
             },
             "notes": notes,
             "brand_id": CHIP_IN_BRAND_ID,
