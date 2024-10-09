@@ -37,6 +37,33 @@ logging.basicConfig(level=logging.INFO)
 logging.info(f"CHIP_IN_BRAND_ID: {CHIP_IN_BRAND_ID}")
 
 
+# Function to check if the coupon is valid
+def validate_shopify_coupon(coupon_code):
+    url = f"{SHOPIFY_STORE_URL}/admin/api/2024-10/price_rules.json"
+
+    headers = {
+        "X-Shopify-Access-Token": SHOPIFY_API_KEY,
+        "Content-Type": "application/json",
+    }
+
+    # Send a request to Shopify to get all discount codes (price rules)
+    response = requests.get(url, headers=headers)
+    logging.info(f"price rule response.content: {response.content}")
+    if response.status_code == 200:
+        price_rules = response.json().get("price_rules", [])
+        logging.info(f"price rule: {price_rules}")
+        for rule in price_rules:
+            # Check if the coupon code matches a valid price rule
+            if coupon_code == rule["title"]:
+                return (
+                    True,
+                    rule["value"],
+                    rule["value_type"],
+                )  # Return the discount value
+
+    return False, None, None  # Coupon is invalid
+
+
 def calculate_price_based_on_discount(price, discount_value, value_type):
     if value_type == "percentage":
         return price + price * discount_value / 100
@@ -454,33 +481,6 @@ def create_shopify_order(
             f"Failed to create order in Shopify. Status Code: {response.status_code}, Response: {response.text}"
         )
         return None
-
-
-# Function to check if the coupon is valid
-def validate_shopify_coupon(coupon_code):
-    url = f"{SHOPIFY_STORE_URL}/admin/api/2024-10/price_rules.json"
-
-    headers = {
-        "X-Shopify-Access-Token": SHOPIFY_API_KEY,
-        "Content-Type": "application/json",
-    }
-
-    # Send a request to Shopify to get all discount codes (price rules)
-    response = requests.get(url, headers=headers)
-    logging.info(f"price rule response.content: {response.content}")
-    if response.status_code == 200:
-        price_rules = response.json().get("price_rules", [])
-        logging.info(f"price rule: {price_rules}")
-        for rule in price_rules:
-            # Check if the coupon code matches a valid price rule
-            if coupon_code == rule["title"]:
-                return (
-                    True,
-                    rule["value"],
-                    rule["value_type"],
-                )  # Return the discount value
-
-    return False, None, None  # Coupon is invalid
 
 
 # Flask endpoint to validate the coupon
