@@ -65,6 +65,8 @@ def validate_shopify_coupon(coupon_code):
 
 
 def calculate_price_based_on_discount(price, discount_value, value_type):
+    logging.info(f"price {price}, dicsount {discount_value}")
+
     if value_type == "percentage":
         return price + (price * discount_value / 100)
     elif value_type == "fixed_amount":
@@ -152,12 +154,12 @@ def create_chip_in_session():
                         "name": item["name"],
                         "price": (
                             calculate_price_based_on_discount(
-                                float(item["price"]) * 100,
+                                float(item["price"]),
                                 float(discount_value),
                                 value_type,
                             )
                             if coupon_is_valid
-                            else float(item["price"]) * 100
+                            else float(item["price"])
                         ),
                         "quantity": item["quantity"],
                         "category": item["variant_id"],
