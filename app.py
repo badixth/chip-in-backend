@@ -493,6 +493,7 @@ def validate_coupon():
     # Get the coupon code from the request body
     data = request.get_json()
     coupon_code = data.get("coupon_code")
+    items = data.get("items")
 
     if not coupon_code:
         return jsonify({"valid": False, "message": "No coupon code provided"}), 400
@@ -500,8 +501,28 @@ def validate_coupon():
     # Validate the coupon code with Shopify
     coupon_is_valid, discount_value, value_type = validate_shopify_coupon(coupon_code)
 
+    items = {
+        "items": [
+            {
+                "name": item["name"],
+                "price": (
+                    calculate_price_based_on_discount(
+                        float(item["price"]),
+                        float(discount_value),
+                        value_type,
+                    )
+                    if coupon_is_valid
+                    else float(item["price"])
+                ),
+                "quantity": item["quantity"],
+                "category": item["variant_id"],
+            }
+            for item in items
+        ]
+    }
+
     if coupon_is_valid:
-        return jsonify({"valid": True, "discount": discount_value}), 200
+        return jsonify({"valid": True, "discount": discount_value, "items": items}), 200
     else:
         return jsonify({"valid": False, "message": "Invalid coupon code"}), 400
 
