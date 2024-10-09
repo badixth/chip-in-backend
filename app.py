@@ -152,7 +152,9 @@ def create_chip_in_session():
                         "name": item["name"],
                         "price": (
                             calculate_price_based_on_discount(
-                                int(item["price"]) * 100, discount_value, value_type
+                                int(item["price"]) * 100,
+                                int(discount_value),
+                                value_type,
                             )
                             if coupon_is_valid
                             else int(item["price"]) * 100
