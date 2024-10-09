@@ -501,25 +501,16 @@ def validate_coupon():
     # Validate the coupon code with Shopify
     coupon_is_valid, discount_value, value_type = validate_shopify_coupon(coupon_code)
 
-    items = {
-        "items": [
-            {
-                "name": item["name"],
-                "price": (
-                    calculate_price_based_on_discount(
-                        float(item["price"]),
-                        float(discount_value),
-                        value_type,
-                    )
-                    if coupon_is_valid
-                    else float(item["price"])
-                ),
-                "quantity": item["quantity"],
-                "category": item["variant_id"],
-            }
-            for item in items
-        ]
-    }
+    for item in items:
+        item["price"] = (
+            calculate_price_based_on_discount(
+                float(item["price"]),
+                float(discount_value),
+                value_type,
+            )
+            if coupon_is_valid
+            else float(item["price"])
+        )
 
     if coupon_is_valid:
         return jsonify({"valid": True, "discount": discount_value, "items": items}), 200
