@@ -84,6 +84,9 @@ def create_chip_in_session():
         coupon_is_valid, discount_value, value_type = validate_shopify_coupon(
             coupon_code
         )
+        logging.info(
+            f"coup info: code {coupon_code}, valid {coupon_is_valid}, discount {discount_value}, value_type {value_type}"
+        )
 
         # Step 4: Prepare the payload for Chip In API
         chip_in_url = "https://gate.chip-in.asia/api/v1/purchases/"
