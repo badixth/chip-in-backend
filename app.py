@@ -430,6 +430,42 @@ def create_shopify_order(
         return None
 
 
+# Function to check if the coupon is valid
+def validate_shopify_coupon(coupon_code):
+    url = f"{SHOPIFY_STORE_URL}/admin/api/2024-10/price_rules.json"
+    
+    # Send a request to Shopify to get all discount codes (price rules)
+    response = requests.get(url)
+    
+    if response.status_code == 200:
+        price_rules = response.json().get('price_rules', [])
+        
+        for rule in price_rules:
+            # Check if the coupon code matches a valid price rule
+            if coupon_code == rule['title']:
+                return True, rule['value']  # Return the discount value
+        
+    return False, None  # Coupon is invalid
+
+# Flask endpoint to validate the coupon
+@app.route('/validate-coupon', methods=['POST'])
+def validate_coupon():
+    # Get the coupon code from the request body
+    data = request.get_json()
+    coupon_code = data.get('coupon_code')
+    
+    if not coupon_code:
+        return jsonify({"valid": False, "message": "No coupon code provided"}), 400
+    
+    # Validate the coupon code with Shopify
+    is_valid, discount_value = validate_shopify_coupon(coupon_code)
+    
+    if is_valid:
+        return jsonify({"valid": True, "discount": discount_value}), 200
+    else:
+        return jsonify({"valid": False, "message": "Invalid coupon code"}), 400
+
+
 # Start the Flask server
 if __name__ == "__main__":
     register_shopify_webhook()  # Register webhook at server start if needed
