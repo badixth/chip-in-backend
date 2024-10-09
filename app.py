@@ -70,7 +70,13 @@ def calculate_price_based_on_discount(price, discount_value, value_type):
     if value_type == "percentage":
         return price + (price * discount_value / 100)
     elif value_type == "fixed_amount":
-        return price + discount_value * 100
+        discount_value = discount_value * 100
+
+        if price < discount_value:
+            return 1
+        else:
+            return price + discount_value
+
     else:
         return 0
 
@@ -501,7 +507,12 @@ def validate_coupon():
     # Validate the coupon code with Shopify
     coupon_is_valid, discount_value, value_type = validate_shopify_coupon(coupon_code)
 
+    total_price_before_discount = 0
+    total_price_after_discount = 0
+
     for item in items:
+        total_price_before_discount += item["price"]
+
         item["price"] = (
             calculate_price_based_on_discount(
                 float(item["price"]),
@@ -512,8 +523,23 @@ def validate_coupon():
             else float(item["price"])
         )
 
+        total_price_after_discount += item["price"]
+
     if coupon_is_valid:
-        return jsonify({"valid": True, "discount": discount_value, "items": items}), 200
+        return (
+            jsonify(
+                {
+                    "valid": True,
+                    "discount": discount_value,
+                    "items": items,
+                    "total_price_before_discount": total_price_before_discount,
+                    "total_price_after_discount": total_price_after_discount,
+                    "discount_value": total_price_before_discount
+                    - total_price_after_discount,
+                }
+            ),
+            200,
+        )
     else:
         return jsonify({"valid": False, "message": "Invalid coupon code"}), 400
 
