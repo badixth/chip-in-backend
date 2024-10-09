@@ -493,18 +493,24 @@ def create_shopify_order(
 
     if response.status_code == 201:
         logging.info(f"Shopify order created successfully: {response_json}")
-        logging.info(f"Customer: {customer}")
+
         logging.info(f"Email Marketing consent state: {email_marketing_consent_state}")
 
-        # If we need to update the email marketing consent, do it now
-        if customer and email_marketing_consent_state:
-            customer_id = customer["id"]
-            update_customer_email_consent(
-                shopify_customer_update_url,
-                customer_id,
-                email_marketing_consent_state,
-                headers,
-            )
+        # Extract the customer information from the order creation response
+        created_customer = response_json.get("order", {}).get("customer", None)
+
+        if created_customer:
+            customer_id = created_customer["id"]
+            logging.info(f"Customer ID from order response: {customer_id}")
+
+            # Update email marketing consent if provided
+            if email_marketing_consent_state:
+                update_customer_email_consent(
+                    f"{shopify_customer_update_url}/{customer_id}.json",
+                    customer_id,
+                    email_marketing_consent_state,
+                    headers,
+                )
 
         return response_json  # Return the created order details
     else:
