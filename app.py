@@ -243,18 +243,7 @@ def chipin_webhook():
 
             # Upadte Email Subscription status
             shopify_customer_subscription_state = update_shopify_subscription_state(
-                name=data["client"]["full_name"],
                 email=data["client"]["email"],
-                phone=data["client"]["phone"],
-                shipping_address={
-                    "address1": data["client"]["shipping_street_address"],
-                    "city": data["client"]["shipping_city"],
-                    "province": data["client"]["shipping_state"],
-                    "zip": data["client"]["shipping_zip_code"],
-                    "country": "MY",
-                    "phone": data["client"]["phone"],
-                },
-                items=data["purchase"]["products"],
                 email_marketing_consent_state=data["client"]["state"],
             )
 
@@ -266,15 +255,6 @@ def chipin_webhook():
             else:
                 logging.error("Failed to update email state")
                 return jsonify({"error": "Failed to create Email State"}), 400
-
-            if shopify_order_response:
-                logging.info(
-                    f"Shopify order created successfully: {shopify_order_response}"
-                )
-                return jsonify({"status": "success"}), 200
-            else:
-                logging.error("Failed to create Shopify order")
-                return jsonify({"error": "Failed to create Shopify order"}), 400
         else:
             logging.warning(f"Chip In order status not paid: {data['status']}")
             return jsonify({"status": "ignored"}), 200
@@ -414,9 +394,7 @@ def find_shopify_customer_by_email(email):
     return None
 
 
-def update_shopify_subscription_state(
-    email_marketing_consent_state=None,
-):
+def update_shopify_subscription_state(email, email_marketing_consent_state=None):
 
     # Shopify API URL
     shopify_customer_url = (
