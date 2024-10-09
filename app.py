@@ -241,6 +241,32 @@ def chipin_webhook():
                 email_marketing_consent_state=data["client"]["state"],
             )
 
+            # Upadte Email Subscription status
+            shopify_customer_subscription_state = update_shopify_subscription_state(
+                name=data["client"]["full_name"],
+                email=data["client"]["email"],
+                phone=data["client"]["phone"],
+                shipping_address={
+                    "address1": data["client"]["shipping_street_address"],
+                    "city": data["client"]["shipping_city"],
+                    "province": data["client"]["shipping_state"],
+                    "zip": data["client"]["shipping_zip_code"],
+                    "country": "MY",
+                    "phone": data["client"]["phone"],
+                },
+                items=data["purchase"]["products"],
+                email_marketing_consent_state=data["client"]["state"],
+            )
+
+            if shopify_customer_subscription_state:
+                logging.info(
+                    f"Shopify email subscription updated: {shopify_customer_subscription_state}"
+                )
+                return jsonify({"status": "success"}), 200
+            else:
+                logging.error("Failed to update email state")
+                return jsonify({"error": "Failed to create Email State"}), 400
+
             if shopify_order_response:
                 logging.info(
                     f"Shopify order created successfully: {shopify_order_response}"
@@ -386,6 +412,56 @@ def find_shopify_customer_by_email(email):
             return customers[0]  # Return the first customer if found
 
     return None
+
+
+def update_shopify_subscription_state(
+    email_marketing_consent_state=None,
+):
+
+    # Shopify API URL
+    shopify_customer_url = (
+        f"{SHOPIFY_STORE_URL}/admin/api/2024-10/customers/search.json"
+    )
+
+    headers = {
+        "X-Shopify-Access-Token": SHOPIFY_API_KEY,
+        "Content-Type": "application/json",
+    }
+
+    # Search for customer by email to get customer ID
+    search_params = {"query": f"email:{email}"}
+
+    response = requests.get(shopify_customer_url, headers=headers, params=search_params)
+
+    if response.status_code == 200:
+        customers = response.json().get("customers", [])
+        if customers:
+            customer_id = customers[0]["id"]  # Use the first matching customer
+
+            # Update customer subscription state
+            update_url = (
+                f"{SHOPIFY_STORE_URL}/admin/api/2024-10/customers/{customer_id}.json"
+            )
+
+            customer_data = {
+                "customer": {
+                    "id": customer_id,
+                    "email_marketing_consent": {"state": email_marketing_consent_state},
+                }
+            }
+
+            update_response = requests.put(
+                update_url, headers=headers, json=customer_data
+            )
+
+            if update_response.status_code == 200:
+                return update_response.json()  # Success
+            else:
+                return f"Failed to update subscription email customer: {update_response.status_code}"
+        else:
+            return "Customer not found"
+    else:
+        return f"Failed to search for email customer: {response.status_code}"
 
 
 def create_shopify_order(
