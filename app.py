@@ -401,6 +401,9 @@ def create_shopify_order(
 
     # Shopify API URL
     shopify_order_url = f"{SHOPIFY_STORE_URL}/admin/api/2024-10/orders.json"
+    shopify_customer_update_url = (
+        f"{SHOPIFY_STORE_URL}/admin/api/2024-10/customers.json"
+    )
 
     headers = {
         "X-Shopify-Access-Token": SHOPIFY_API_KEY,
@@ -495,12 +498,49 @@ def create_shopify_order(
 
     if response.status_code == 201:
         logging.info(f"Shopify order created successfully: {response_json}")
+
+        # If we need to update the email marketing consent, do it now
+        if customer and email_marketing_consent_state:
+            customer_id = customer["id"]
+            update_customer_email_consent(
+                shopify_customer_update_url,
+                customer_id,
+                email_marketing_consent_state,
+                headers,
+            )
+
         return response_json  # Return the created order details
     else:
         logging.error(
             f"Failed to create order in Shopify. Status Code: {response.status_code}, Response: {response.text}"
         )
         return None
+
+
+def update_customer_email_consent(
+    customer_update_url_template, customer_id, email_marketing_consent_state, headers
+):
+    # Format the customer update URL with the customer ID
+    customer_update_url = customer_update_url_template.format(customer_id)
+
+    # Prepare the payload to update email marketing consent
+    customer_data = {
+        "customer": {
+            "email_marketing_consent": {"state": email_marketing_consent_state}
+        }
+    }
+
+    # Make the PUT request to update the customer
+    response = requests.put(customer_update_url, json=customer_data, headers=headers)
+
+    if response.status_code == 200:
+        logging.info(
+            f"Successfully updated email marketing consent for customer ID {customer_id}"
+        )
+    else:
+        logging.error(
+            f"Failed to update email marketing consent. Status Code: {response.status_code}, Response: {response.text}"
+        )
 
 
 # Flask endpoint to validate the coupon
