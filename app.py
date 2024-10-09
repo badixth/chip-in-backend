@@ -92,6 +92,7 @@ def create_chip_in_session():
         email = data.get("email")
         phone = data.get("phone")
         shipping_address = data.get("shipping_address")
+        email_marketing_consent_state = data.get("email_marketing_consent_state", None)
         notes = data.get(
             "notes", ""
         )  # Optional field with default value of empty string
@@ -153,6 +154,7 @@ def create_chip_in_session():
                 "shipping_city": city,
                 "shipping_zip_code": zip_code,
                 "shipping_state": province,
+                "state": email_marketing_consent_state,
             },
             "purchase": {
                 "products": [
@@ -235,6 +237,7 @@ def chipin_webhook():
                     "phone": data["client"]["phone"],
                 },
                 items=data["purchase"]["products"],
+                email_marketing_consent_state=data["client"]["state"],
             )
 
             if shopify_order_response:
@@ -391,6 +394,7 @@ def create_shopify_order(
     shipping_address,
     items,
     financial_status="paid",
+    email_marketing_consent_state=None,
 ):
     customer = find_shopify_customer_by_email(email)
 
@@ -474,6 +478,11 @@ def create_shopify_order(
                 "note": "Order created via custom payment integration",
                 "send_receipt": True,
             }
+        }
+
+    if email_marketing_consent_state:
+        order_data["customer"]["email_marketing_consent"] = {
+            "state": email_marketing_consent_state
         }
 
     response = requests.post(shopify_order_url, json=order_data, headers=headers)
