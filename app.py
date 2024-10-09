@@ -523,7 +523,7 @@ def update_customer_email_consent(
 ):
     logging.info(f"Updating email marketing consent for customer ID: {customer_id}")
     # Format the customer update URL with the customer ID
-    customer_update_url = f"{customer_update_url_template}/{customer_id}.json"
+    customer_update_url = f"{customer_update_url_template}"
     logging.info(f"Customer update URL: {customer_update_url}")
 
     # Prepare the payload to update email marketing consent
