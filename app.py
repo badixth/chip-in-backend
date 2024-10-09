@@ -98,6 +98,7 @@ def create_chip_in_session():
         )  # Optional field with default value of empty string
         items = data.get("items")
         logging.info(f"order items: {items}")
+        logging.info(f"form data: {data}")
         shopify_order_id = data.get("order_id")  # Capture the Shopify Order ID
 
         # Step 3: Split full_name into first_name and last_name
