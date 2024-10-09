@@ -110,8 +110,8 @@ def create_chip_in_session():
                     for item in items
                 ],
                 "currency": "MYR",
-                "success_redirect": success_redirect_url,  # Add the success_redirect URL here
             },
+            "success_redirect": success_redirect_url,  # Add the success_redirect URL here
             "notes": notes,
             "brand_id": CHIP_IN_BRAND_ID,
         }
