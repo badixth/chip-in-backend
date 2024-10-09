@@ -37,6 +37,15 @@ logging.basicConfig(level=logging.INFO)
 logging.info(f"CHIP_IN_BRAND_ID: {CHIP_IN_BRAND_ID}")
 
 
+def calculate_price_based_on_discount(price, discount_value, value_type):
+    if value_type == "percentage":
+        return price + price * discount_value / 100
+    elif value_type == "fixed_amount":
+        return price + discount_value
+    else:
+        return 0
+
+
 @app.route("/create-chip-in-session", methods=["POST"])
 def create_chip_in_session():
     try:
@@ -66,6 +75,16 @@ def create_chip_in_session():
         if not all([first_name, email, phone, shipping_address, items]):
             return jsonify({"error": "Missing required fields"}), 400
 
+        # Step 3.2 Validate shopify coupon
+        coupon_code = data.get("coupon_code", None)
+
+        coupon_is_valid = False
+        discount_value = 0
+        value_type = None
+        coupon_is_valid, discount_value, value_type = validate_shopify_coupon(
+            coupon_code
+        )
+
         # Step 4: Prepare the payload for Chip In API
         chip_in_url = "https://gate.chip-in.asia/api/v1/purchases/"
 
@@ -75,9 +94,7 @@ def create_chip_in_session():
         }
 
         # Prepare the success_redirect URL with dynamic data (e.g., order_id)
-        success_redirect_url = (
-            f"{SHOPIFY_STORE_URL}/pages/thank-you-page?order_id={shopify_order_id}&status=paid"
-        )      
+        success_redirect_url = f"{SHOPIFY_STORE_URL}/pages/thank-you-page?order_id={shopify_order_id}&status=paid"
 
         # Extract the shipping address parts properly
         address1 = shipping_address.get("address1")
@@ -103,7 +120,13 @@ def create_chip_in_session():
                 "products": [
                     {
                         "name": item["name"],
-                        "price": int(item["price"] * 100),
+                        "price": (
+                            calculate_price_based_on_discount(
+                                int(item["price"]) * 100, discount_value, value_type
+                            )
+                            if coupon_is_valid
+                            else int(item["price"]) * 100
+                        ),
                         "quantity": item["quantity"],
                         "category": item["variant_id"],
                     }
@@ -438,34 +461,39 @@ def validate_shopify_coupon(coupon_code):
         "X-Shopify-Access-Token": SHOPIFY_API_KEY,
         "Content-Type": "application/json",
     }
-    
+
     # Send a request to Shopify to get all discount codes (price rules)
     response = requests.get(url, headers=headers)
     logging.info(f"price rule response.content: {response.content}")
     if response.status_code == 200:
-        price_rules = response.json().get('price_rules', [])
+        price_rules = response.json().get("price_rules", [])
         logging.info(f"price rule: {price_rules}")
         for rule in price_rules:
             # Check if the coupon code matches a valid price rule
-            if coupon_code == rule['title']:
-                return True, rule['value']  # Return the discount value
-        
-    return False, None  # Coupon is invalid
+            if coupon_code == rule["title"]:
+                return (
+                    True,
+                    rule["value"],
+                    rule["value_type"],
+                )  # Return the discount value
+
+    return False, None, None  # Coupon is invalid
+
 
 # Flask endpoint to validate the coupon
-@app.route('/validate-coupon', methods=['POST'])
+@app.route("/validate-coupon", methods=["POST"])
 def validate_coupon():
     # Get the coupon code from the request body
     data = request.get_json()
-    coupon_code = data.get('coupon_code')
-    
+    coupon_code = data.get("coupon_code")
+
     if not coupon_code:
         return jsonify({"valid": False, "message": "No coupon code provided"}), 400
-    
+
     # Validate the coupon code with Shopify
-    is_valid, discount_value = validate_shopify_coupon(coupon_code)
-    
-    if is_valid:
+    coupon_is_valid, discount_value, value_type = validate_shopify_coupon(coupon_code)
+
+    if coupon_is_valid:
         return jsonify({"valid": True, "discount": discount_value}), 200
     else:
         return jsonify({"valid": False, "message": "Invalid coupon code"}), 400
