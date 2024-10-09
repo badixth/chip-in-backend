@@ -493,6 +493,7 @@ def create_shopify_order(
 
     if response.status_code == 201:
         logging.info(f"Shopify order created successfully: {response_json}")
+        logging.info(f"Customer: {customer}")
         logging.info(f"Email Marketing consent state: {email_marketing_consent_state}")
 
         # If we need to update the email marketing consent, do it now
@@ -516,8 +517,10 @@ def create_shopify_order(
 def update_customer_email_consent(
     customer_update_url_template, customer_id, email_marketing_consent_state, headers
 ):
+    logging.info(f"Updating email marketing consent for customer ID: {customer_id}")
     # Format the customer update URL with the customer ID
     customer_update_url = f"{customer_update_url_template}/{customer_id}.json"
+    logging.info(f"Customer update URL: {customer_update_url}")
 
     # Prepare the payload to update email marketing consent
     customer_data = {
@@ -528,6 +531,7 @@ def update_customer_email_consent(
 
     # Make the PUT request to update the customer
     response = requests.put(customer_update_url, json=customer_data, headers=headers)
+    logging.info(f"Request made to Shopify: {response.status_code}, {response.text}")
     logging.info(f"Customer Email Subscription Update: {response.content}")
     if response.status_code == 200:
         logging.info(
