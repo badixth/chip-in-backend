@@ -241,20 +241,14 @@ def chipin_webhook():
                 email_marketing_consent_state=data["client"]["state"],
             )
 
-            # Upadte Email Subscription status
-            shopify_customer_subscription_state = update_shopify_subscription_state(
-                email=data["client"]["email"],
-                email_marketing_consent_state=data["client"]["state"],
-            )
-
-            if shopify_customer_subscription_state:
+            if shopify_order_response:
                 logging.info(
-                    f"Shopify email subscription updated: {shopify_customer_subscription_state}"
+                    f"Shopify order created successfully: {shopify_order_response}"
                 )
                 return jsonify({"status": "success"}), 200
             else:
-                logging.error("Failed to update email state")
-                return jsonify({"error": "Failed to create Email State"}), 400
+                logging.error("Failed to create Shopify order")
+                return jsonify({"error": "Failed to create Shopify order"}), 400
         else:
             logging.warning(f"Chip In order status not paid: {data['status']}")
             return jsonify({"status": "ignored"}), 200
@@ -394,54 +388,6 @@ def find_shopify_customer_by_email(email):
     return None
 
 
-def update_shopify_subscription_state(email, email_marketing_consent_state=None):
-
-    # Shopify API URL
-    shopify_customer_url = (
-        f"{SHOPIFY_STORE_URL}/admin/api/2024-10/customers/search.json"
-    )
-
-    headers = {
-        "X-Shopify-Access-Token": SHOPIFY_API_KEY,
-        "Content-Type": "application/json",
-    }
-
-    # Search for customer by email to get customer ID
-    search_params = {"query": f"email:{email}"}
-
-    response = requests.get(shopify_customer_url, headers=headers, params=search_params)
-
-    if response.status_code == 200:
-        customers = response.json().get("customers", [])
-        if customers:
-            customer_id = customers[0]["id"]  # Use the first matching customer
-
-            # Update customer subscription state
-            update_url = (
-                f"{SHOPIFY_STORE_URL}/admin/api/2024-10/customers/{customer_id}.json"
-            )
-
-            customer_data = {
-                "customer": {
-                    "id": customer_id,
-                    "email_marketing_consent": {"state": email_marketing_consent_state},
-                }
-            }
-
-            update_response = requests.put(
-                update_url, headers=headers, json=customer_data
-            )
-
-            if update_response.status_code == 200:
-                return update_response.json()  # Success
-            else:
-                return f"Failed to update subscription email customer: {update_response.status_code}"
-        else:
-            return "Customer not found"
-    else:
-        return f"Failed to search for email customer: {response.status_code}"
-
-
 def create_shopify_order(
     name,
     email,
@@ -476,7 +422,6 @@ def create_shopify_order(
                     "id": customer["id"],  # Use existing customer ID
                     "first_name": first_name,
                     "last_name": last_name,
-                    "email_marketing_consent": {"state": email_marketing_consent_state},
                 },
                 "line_items": [
                     {
@@ -511,7 +456,6 @@ def create_shopify_order(
                     "first_name": first_name,
                     "last_name": last_name,
                     "email": email,
-                    "email_marketing_consent": {"state": email_marketing_consent_state},
                 },
                 "line_items": [
                     {
@@ -535,6 +479,11 @@ def create_shopify_order(
                 "note": "Order created via custom payment integration",
                 "send_receipt": True,
             }
+        }
+
+    if email_marketing_consent_state:
+        order_data["order"]["customer"]["email_marketing_consent"] = {
+            "state": email_marketing_consent_state
         }
 
     response = requests.post(shopify_order_url, json=order_data, headers=headers)
