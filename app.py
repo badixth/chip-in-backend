@@ -484,11 +484,6 @@ def create_shopify_order(
             }
         }
 
-    if email_marketing_consent_state:
-        order_data["order"]["customer"]["email_marketing_consent"] = {
-            "state": email_marketing_consent_state
-        }
-
     response = requests.post(shopify_order_url, json=order_data, headers=headers)
     logging.info(f"POST shopify order url: {response.content}")
 
@@ -498,6 +493,7 @@ def create_shopify_order(
 
     if response.status_code == 201:
         logging.info(f"Shopify order created successfully: {response_json}")
+        logging.info(f"Email Marketing consent state: {email_marketing_consent_state}")
 
         # If we need to update the email marketing consent, do it now
         if customer and email_marketing_consent_state:
