@@ -70,7 +70,7 @@ def calculate_price_based_on_discount(price, discount_value, value_type):
     if value_type == "percentage":
         return price + (price * discount_value / 100)
     elif value_type == "fixed_amount":
-        return price + discount_value
+        return price + discount_value * 100
     else:
         return 0
 
