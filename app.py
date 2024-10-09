@@ -482,7 +482,7 @@ def create_shopify_order(
         }
 
     if email_marketing_consent_state:
-        order_data["customer"]["email_marketing_consent"] = {
+        order_data["order"]["customer"]["email_marketing_consent"] = {
             "state": email_marketing_consent_state
         }
 
