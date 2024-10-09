@@ -401,9 +401,7 @@ def create_shopify_order(
 
     # Shopify API URL
     shopify_order_url = f"{SHOPIFY_STORE_URL}/admin/api/2024-10/orders.json"
-    shopify_customer_update_url = (
-        f"{SHOPIFY_STORE_URL}/admin/api/2024-10/customers.json"
-    )
+    shopify_customer_update_url = f"{SHOPIFY_STORE_URL}/admin/api/2024-10/customers"
 
     headers = {
         "X-Shopify-Access-Token": SHOPIFY_API_KEY,
