@@ -422,6 +422,7 @@ def create_shopify_order(
                     "id": customer["id"],  # Use existing customer ID
                     "first_name": first_name,
                     "last_name": last_name,
+                    "email_marketing_consent": {"state": email_marketing_consent_state},
                 },
                 "line_items": [
                     {
@@ -456,6 +457,7 @@ def create_shopify_order(
                     "first_name": first_name,
                     "last_name": last_name,
                     "email": email,
+                    "email_marketing_consent": {"state": email_marketing_consent_state},
                 },
                 "line_items": [
                     {
@@ -479,11 +481,6 @@ def create_shopify_order(
                 "note": "Order created via custom payment integration",
                 "send_receipt": True,
             }
-        }
-
-    if email_marketing_consent_state:
-        order_data["order"]["customer"]["email_marketing_consent"] = {
-            "state": email_marketing_consent_state
         }
 
     response = requests.post(shopify_order_url, json=order_data, headers=headers)
