@@ -439,7 +439,7 @@ def validate_shopify_coupon(coupon_code):
     
     if response.status_code == 200:
         price_rules = response.json().get('price_rules', [])
-        
+        logging.info(f"price rules: {price_rules}")
         for rule in price_rules:
             # Check if the coupon code matches a valid price rule
             if coupon_code == rule['title']:
