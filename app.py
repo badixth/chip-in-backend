@@ -521,7 +521,7 @@ def update_customer_email_consent(
     customer_update_url_template, customer_id, email_marketing_consent_state, headers
 ):
     # Format the customer update URL with the customer ID
-    customer_update_url = customer_update_url_template.format(customer_id)
+    customer_update_url = f"{customer_update_url_template}/{customer_id}.json"
 
     # Prepare the payload to update email marketing consent
     customer_data = {
@@ -532,7 +532,7 @@ def update_customer_email_consent(
 
     # Make the PUT request to update the customer
     response = requests.put(customer_update_url, json=customer_data, headers=headers)
-
+    logging.info(f"Customer Email Subscription Update: {response.content}")
     if response.status_code == 200:
         logging.info(
             f"Successfully updated email marketing consent for customer ID {customer_id}"
