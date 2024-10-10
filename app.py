@@ -162,7 +162,7 @@ def create_chip_in_session():
         total_override = 0
 
         for item in items:
-            price = float(item["price"])
+            price = float(item["price"]) * float(item["quantity"])
 
             if coupon_is_valid:
                 calculated_item_price = calculate_price_based_on_discount(
@@ -599,7 +599,7 @@ def validate_coupon():
     total_price_after_discount = 0
 
     for item in items:
-        total_item_price = float(item["price"]) * float(["quantity"])
+        total_item_price = float(item["price"]) * float(item["quantity"])
         total_price_before_discount += total_item_price
 
         item["price"] = (
