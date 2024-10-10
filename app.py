@@ -159,8 +159,6 @@ def create_chip_in_session():
         for item in items:
             price = float(item["price"])
 
-            total_price_before_discount += price
-
             if coupon_is_valid:
                 calculated_item_price = calculate_price_based_on_discount(
                     price,
