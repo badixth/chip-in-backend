@@ -175,6 +175,8 @@ def create_chip_in_session():
 
             item["price"] = calculated_item_price
 
+        items[-1]["price"] = items[-1]["price"] + 700 # shipping fee
+
         payload = {
             "client": {
                 "email": email,
