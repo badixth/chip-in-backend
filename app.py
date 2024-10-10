@@ -64,11 +64,22 @@ def validate_shopify_coupon(coupon_code):
     return False, None, None  # Coupon is invalid
 
 
-def calculate_price_based_on_discount(price, discount_value, value_type):
+def calculate_price_based_on_discount(
+    price,
+    discount_value,
+    value_type,
+    capped_at=-2000,  # 20 sen = 20 ringgit
+):
     logging.info(f"price {price}, dicsount {discount_value}")
 
     if value_type == "percentage":
-        return price + (price * discount_value / 100)
+        discount_amount = price * discount_value / 100
+
+        if discount_amount > capped_at:
+            discount_amount = capped_at
+
+        return price + discount_amount  # discount amount is in negative
+
     elif value_type == "fixed_amount":
         discount_value = discount_value * 100
 
