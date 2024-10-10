@@ -157,25 +157,27 @@ def create_chip_in_session():
         discount_balance = 2000  # 2000 sen = 20 ringgit
 
         for item in items:
-            total_price_before_discount += item["price"]
+            price = float(item["price"])
+
+            total_price_before_discount += price
 
             if coupon_is_valid:
                 calculated_item_price = calculate_price_based_on_discount(
-                    item["price"],
-                    discount_value,
+                    price,
+                    float(discount_value),
                     value_type,
                 )
 
-                if item["price"] - calculated_item_price > discount_balance:
-                    calculated_item_price = item["price"] - discount_balance
+                if price - calculated_item_price > discount_balance:
+                    calculated_item_price = price - discount_balance
                     coupon_is_valid = False
 
             else:
-                calculated_item_price = item["price"]
+                calculated_item_price = price
 
             item["price"] = calculated_item_price
 
-        items[-1]["price"] = items[-1]["price"] + 700 # shipping fee
+        items[-1]["price"] = float(items[-1]["price"]) + 700  # shipping fee
 
         payload = {
             "client": {
@@ -591,19 +593,19 @@ def validate_coupon():
     total_price_after_discount = 0
 
     for item in items:
-        total_price_before_discount += item["price"]
+        total_price_before_discount += float(item["price"])
 
         item["price"] = (
             calculate_price_based_on_discount(
-                item["price"],
-                discount_value,
+                float(item["price"]),
+                float(discount_value),
                 value_type,
             )
             if coupon_is_valid
-            else item["price"]
+            else float(item["price"])
         )
 
-        total_price_after_discount += item["price"]
+        total_price_after_discount += float(item["price"])
 
     # cap voucher at 2000 sen
     capped_at = 2000
