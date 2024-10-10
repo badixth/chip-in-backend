@@ -68,23 +68,23 @@ def calculate_price_based_on_discount(
     price,
     discount_value,
     value_type,
-    capped_at=-2000,  # 20 sen = 20 ringgit
+    override=0,
 ):
     logging.info(f"price {price}, dicsount {discount_value}")
 
-    if value_type == "percentage":
+    if value_type == "percentage" and override:
         discount_amount = price * discount_value / 100
+        return price + discount_amount  # discount amount is in negative
 
-        if discount_amount > capped_at:
-            discount_amount = capped_at
-
+    elif value_type == "percentage":
+        discount_amount = price * discount_value / 100
         return price + discount_amount  # discount amount is in negative
 
     elif value_type == "fixed_amount":
         discount_value = discount_value * 100
 
         if price <= -discount_value:
-            return 1
+            return 0.1
         else:
             return price + discount_value
 
@@ -154,6 +154,27 @@ def create_chip_in_session():
         zip_code = shipping_address.get("zip")
         country = shipping_address.get("country")
 
+        discount_balance = 2000  # 2000 sen = 20 ringgit
+
+        for item in items:
+            total_price_before_discount += item["price"]
+
+            if coupon_is_valid:
+                calculated_item_price = calculate_price_based_on_discount(
+                    item["price"],
+                    discount_value,
+                    value_type,
+                )
+
+                if item["price"] - calculated_item_price > discount_balance:
+                    calculated_item_price = item["price"] - discount_balance
+                    coupon_is_valid = False
+
+            else:
+                calculated_item_price = item["price"]
+
+            item["price"] = calculated_item_price
+
         payload = {
             "client": {
                 "email": email,
@@ -172,15 +193,7 @@ def create_chip_in_session():
                 "products": [
                     {
                         "name": item["name"],
-                        "price": (
-                            calculate_price_based_on_discount(
-                                float(item["price"]),
-                                float(discount_value),
-                                value_type,
-                            )
-                            if coupon_is_valid
-                            else float(item["price"])
-                        ),
+                        "price": item["price"],
                         "quantity": item["quantity"],
                         "category": item["variant_id"],
                     }
@@ -580,15 +593,21 @@ def validate_coupon():
 
         item["price"] = (
             calculate_price_based_on_discount(
-                float(item["price"]),
-                float(discount_value),
+                item["price"],
+                discount_value,
                 value_type,
             )
             if coupon_is_valid
-            else float(item["price"])
+            else item["price"]
         )
 
         total_price_after_discount += item["price"]
+
+    # cap voucher at 2000 sen
+    capped_at = 2000
+
+    if total_price_before_discount - total_price_after_discount > capped_at:
+        total_price_after_discount = total_price_before_discount - capped_at
 
     if coupon_is_valid:
         return (
