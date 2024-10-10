@@ -595,30 +595,34 @@ def validate_coupon():
     # Validate the coupon code with Shopify
     coupon_is_valid, discount_value, value_type = validate_shopify_coupon(coupon_code)
 
+    discount_balance = 2000  # 2000 sen = 20 ringgit
+
     total_price_before_discount = 0
     total_price_after_discount = 0
 
     for item in items:
-        total_item_price = float(item["price"]) * float(item["quantity"])
-        total_price_before_discount += total_item_price
+        price = float(item["price"]) * float(item["quantity"])
+        total_price_before_discount += price
 
-        item["price"] = (
-            calculate_price_based_on_discount(
-                total_item_price,
+        if coupon_is_valid:
+            calculated_item_price = calculate_price_based_on_discount(
+                price,
                 float(discount_value),
                 value_type,
             )
-            if coupon_is_valid
-            else total_item_price
-        )
 
-        total_price_after_discount += total_item_price
+            if price - calculated_item_price > discount_balance:
+                calculated_item_price = price - discount_balance
+                coupon_is_valid = False
 
-    # cap voucher at 2000 sen
-    capped_at = 2000
+            discount_balance -= price - calculated_item_price
 
-    if total_price_before_discount - total_price_after_discount > capped_at:
-        total_price_after_discount = total_price_before_discount - capped_at
+        else:
+            calculated_item_price = price
+
+        total_price_after_discount += calculated_item_price
+
+    total_price_after_discount += 700  # shipping fee
 
     if coupon_is_valid:
         return (
