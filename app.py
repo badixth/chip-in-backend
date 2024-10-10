@@ -604,7 +604,7 @@ def validate_coupon():
         price = float(item["price"]) * float(item["quantity"])
         total_price_before_discount += price
 
-        if coupon_is_valid:
+        if discount_balance > 0:
             calculated_item_price = calculate_price_based_on_discount(
                 price,
                 float(discount_value),
@@ -613,7 +613,6 @@ def validate_coupon():
 
             if price - calculated_item_price > discount_balance:
                 calculated_item_price = price - discount_balance
-                coupon_is_valid = False
 
             discount_balance -= price - calculated_item_price
 
