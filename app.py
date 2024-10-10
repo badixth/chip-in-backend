@@ -103,7 +103,10 @@ def create_chip_in_session():
         email = data.get("email")
         phone = data.get("phone")
         shipping_address = data.get("shipping_address")
-        email_marketing_consent_state = data.get("email_marketing_consent_state", None)
+        email_marketing_consent_state = data.get(
+            "email_marketing_consent_state",
+            "unsubscribed",
+        )
         notes = data.get(
             "notes", ""
         )  # Optional field with default value of empty string
@@ -156,6 +159,8 @@ def create_chip_in_session():
 
         discount_balance = 2000  # 2000 sen = 20 ringgit
 
+        total_override = 0
+
         for item in items:
             price = float(item["price"])
 
@@ -170,12 +175,14 @@ def create_chip_in_session():
                     calculated_item_price = price - discount_balance
                     coupon_is_valid = False
 
+                discount_balance -= price - calculated_item_price
+
             else:
                 calculated_item_price = price
 
-            item["price"] = calculated_item_price
+            total_override += calculated_item_price
 
-        items[-1]["price"] = float(items[-1]["price"]) + 700  # shipping fee
+        total_override += 700  # shipping fee
 
         payload = {
             "client": {
@@ -201,6 +208,7 @@ def create_chip_in_session():
                     }
                     for item in items
                 ],
+                "total_override": total_override,
                 "currency": "MYR",
             },
             "success_redirect": success_redirect_url,  # Add the success_redirect URL here
@@ -591,19 +599,20 @@ def validate_coupon():
     total_price_after_discount = 0
 
     for item in items:
-        total_price_before_discount += float(item["price"])
+        total_item_price = float(item["price"]) * float(["quantity"])
+        total_price_before_discount += total_item_price
 
         item["price"] = (
             calculate_price_based_on_discount(
-                float(item["price"]),
+                total_item_price,
                 float(discount_value),
                 value_type,
             )
             if coupon_is_valid
-            else float(item["price"])
+            else total_item_price
         )
 
-        total_price_after_discount += float(item["price"])
+        total_price_after_discount += total_item_price
 
     # cap voucher at 2000 sen
     capped_at = 2000
