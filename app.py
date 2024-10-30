@@ -157,6 +157,8 @@ def create_chip_in_session():
         zip_code = shipping_address.get("zip")
         country = shipping_address.get("country")
 
+        shipping_fee = 900 if province in ["MY-12", "MY-13", "MY-15"] else 400
+
         discount_balance = 2000  # 2000 sen = 20 ringgit
 
         total_override = 0
@@ -182,7 +184,7 @@ def create_chip_in_session():
 
             total_override += calculated_item_price
 
-        total_override += 700  # shipping fee
+        total_override += shipping_fee  # shipping fee
 
         payload = {
             "client": {
@@ -620,8 +622,6 @@ def validate_coupon():
             calculated_item_price = price
 
         total_price_after_discount += calculated_item_price
-
-    total_price_after_discount += 700  # shipping fee
 
     if coupon_is_valid:
         return (
