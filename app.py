@@ -449,6 +449,8 @@ def create_shopify_order(
     first_name = name_parts[0]
     last_name = name_parts[1] if len(name_parts) > 1 else ""
 
+    shipping_fee = 900 if province in ["MY-12", "MY-13", "MY-15"] else 400
+    
     if customer:
         logging.info(f"Found existing customer with ID: {customer['id']}")
         # Customer exists, use the customer ID in the order payload
@@ -479,6 +481,14 @@ def create_shopify_order(
                     "country": "MY",
                     "phone": phone,
                 },
+                "shipping_lines": [
+                  {
+                    "title": "Flat Rate Shipping",
+                    "price": shipping_fee / 100, // Set the shipping fee here
+                    "code": "FLATRATESHIPPING",
+                    "source": "Shopify"
+                  }
+                ],
                 "note": "Order created via custom payment integration",
                 "send_receipt": True,
             }
@@ -513,6 +523,14 @@ def create_shopify_order(
                     "country": "MY",
                     "phone": phone,
                 },
+                "shipping_lines": [
+                  {
+                    "title": "Flat Rate Shipping",
+                    "price": shipping_fee / 100, // Set the shipping fee here
+                    "code": "FLATRATESHIPPING",
+                    "source": "Shopify"
+                  }
+                ],
                 "note": "Order created via custom payment integration",
                 "send_receipt": True,
             }
