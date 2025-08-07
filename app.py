@@ -163,6 +163,10 @@ def create_chip_in_session():
 
         total_override = 0
 
+        has_shipping = any(item.get("shipping", True) for item in items)
+        if not has_shipping:
+            shipping_fee = 0
+
         for item in items:
             price = float(item["price"]) * float(item["quantity"])
 
