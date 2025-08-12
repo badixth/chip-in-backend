@@ -1,3 +1,4 @@
+import json
 from flask import Flask, request, jsonify
 from sqlalchemy.orm import sessionmaker
 from models import Order, engine, Session
@@ -97,6 +98,7 @@ def create_chip_in_session():
     try:
         # Step 1: Get the JSON data sent from the frontend
         data = request.get_json()
+        print(json.dumps(data, indent=4)) 
 
         # Step 2: Extract the required fields from the incoming data
         full_name = data.get("name")
