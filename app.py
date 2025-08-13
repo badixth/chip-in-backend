@@ -101,32 +101,43 @@ def create_chip_in_session():
         print(json.dumps(data, indent=4)) 
 
         # Step 2: Extract the required fields from the incoming data
-        full_name = data.get("name")
-        email = data.get("email")
-        phone = data.get("phone")
-        shipping_address = data.get("shipping_address")
-        email_marketing_consent_state = data.get(
-            "email_marketing_consent_state",
-            "unsubscribed",
-        )
-        notes = data.get(
-            "notes", ""
-        )  # Optional field with default value of empty string
-        items = data.get("items")
-        logging.info(f"order items: {items}")
-        logging.info(f"form data: {data}")
-        shopify_order_id = data.get("order_id")  # Capture the Shopify Order ID
+        form_type = data.get("formType")
+
+        if form_type == "regular":
+            full_name = data.get("name")
+            email = data.get("email")
+            phone = data.get("phone")
+            shipping_address = data.get("address")
+            email_marketing_consent_state = data.get(
+                "email_marketing_consent_state",
+                "unsubscribed",
+            )
+            notes = data.get(
+                "notes", ""
+            )  # Optional field with default value of empty string
+            items = data.get("items")
+            logging.info(f"order items: {items}")
+            logging.info(f"form data: {data}")
+            shopify_order_id = data.get("order_id")  # Capture the Shopify Order ID
+
+            if not all([full_name, email, phone, shipping_address, items]):
+                return jsonify({"error": "Missing required fields"}), 400
+
+        elif form_type == "academy":
+            #test
+            return
+
+        
 
         # Step 3: Split full_name into first_name and last_name
-        name_parts = full_name.split(" ", 1)
-        first_name = name_parts[0]
-        last_name = (
-            name_parts[1] if len(name_parts) > 1 else ""
-        )  # Handle cases where no last name is provided
+        # name_parts = full_name.split(" ", 1)
+        # first_name = name_parts[0]
+        # last_name = (
+        #     name_parts[1] if len(name_parts) > 1 else ""
+        # )  # Handle cases where no last name is provided
 
         # Step 3.1: Check if all required fields are present
-        if not all([first_name, email, phone, shipping_address, items]):
-            return jsonify({"error": "Missing required fields"}), 400
+        
 
         # Step 3.2 Validate shopify coupon
         coupon_code = data.get("coupon_code", None)
@@ -153,11 +164,20 @@ def create_chip_in_session():
         success_redirect_url = f"{SHOPIFY_STORE_URL}/pages/thank-you-page?order_id={shopify_order_id}&status=paid"
 
         # Extract the shipping address parts properly
-        address1 = shipping_address.get("address1")
-        city = shipping_address.get("city")
-        province = shipping_address.get("province")
-        zip_code = shipping_address.get("zip")
-        country = shipping_address.get("country")
+
+        address_data = shipping_address.get("address", {})
+
+        address1 = address_data.get("address")
+        city = address_data.get("city")
+        province = address_data.get("province")
+        zip_code = address_data.get("zip")
+        country = address_data.get("country")
+
+        # address1 = shipping_address.get("address1")
+        # city = shipping_address.get("city")
+        # province = shipping_address.get("province")
+        # zip_code = shipping_address.get("zip")
+        # country = shipping_address.get("country")
 
         shipping_fee = 900 if province in ["MY-12", "MY-13", "MY-15"] else 400
 
@@ -197,8 +217,8 @@ def create_chip_in_session():
                 "email": email,
                 "phone": phone,
                 "full_name": full_name,  # Send full name to Chip In if required
-                "first_name": first_name,  # Optionally send first and last names separately if needed
-                "last_name": last_name,
+                # "first_name": first_name,  # Optionally send first and last names separately if needed
+                # "last_name": last_name,
                 "shipping_street_address": address1,
                 "shipping_country": country,
                 "shipping_city": city,
