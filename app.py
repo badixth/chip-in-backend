@@ -165,13 +165,13 @@ def create_chip_in_session():
 
         # Extract the shipping address parts properly
 
-        address_data = shipping_address.get("address", {})
+        
 
-        address1 = address_data.get("address")
-        city = address_data.get("city")
-        province = address_data.get("province")
-        zip_code = address_data.get("zip")
-        country = address_data.get("country")
+        address1 = shipping_address.get("address")
+        city = shipping_address.get("city")
+        province = shipping_address.get("province")
+        zip_code = shipping_address.get("zip")
+        country = shipping_address.get("country")
 
         # address1 = shipping_address.get("address1")
         # city = shipping_address.get("city")
