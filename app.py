@@ -120,6 +120,12 @@ def create_chip_in_session():
             logging.info(f"form data: {data}")
             shopify_order_id = data.get("order_id")  # Capture the Shopify Order ID
 
+            address1 = shipping_address.get("address")
+            city = shipping_address.get("city")
+            province = shipping_address.get("province")
+            zip_code = shipping_address.get("zip")
+            country = shipping_address.get("country")
+
             if not all([full_name, email, phone, shipping_address, items]):
                 return jsonify({"error": "Missing required fields"}), 400
 
@@ -128,7 +134,7 @@ def create_chip_in_session():
             full_name = player_1.get("name")
             email = player_1.get("email")
             phone = player_1.get("phone")
-            shipping_address = data.get("address")
+            # shipping_address = data.get("address")
             email_marketing_consent_state = data.get(
                 "email_marketing_consent_state",
                 "unsubscribed",
@@ -140,6 +146,11 @@ def create_chip_in_session():
             logging.info(f"order items: {items}")
             logging.info(f"form data: {data}")
             shopify_order_id = data.get("order_id") 
+            address1 = player_1.get("address")
+            city = player_1.get("city")
+            province = player_1.get("province")
+            zip_code = player_1.get("zip")
+            country = player_1.get("country")
             
 
         
@@ -182,11 +193,7 @@ def create_chip_in_session():
 
         
 
-        address1 = shipping_address.get("address")
-        city = shipping_address.get("city")
-        province = shipping_address.get("province")
-        zip_code = shipping_address.get("zip")
-        country = shipping_address.get("country")
+        
 
         # address1 = shipping_address.get("address1")
         # city = shipping_address.get("city")
