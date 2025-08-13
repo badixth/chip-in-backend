@@ -201,7 +201,7 @@ def create_chip_in_session():
         # zip_code = shipping_address.get("zip")
         # country = shipping_address.get("country")
 
-        shipping_fee = 900 if province in ["MY-12", "MY-13", "MY-15"] else 400
+        shipping_fee = 0 if form_type == "academy" else (900 if province in ["MY-12", "MY-13", "MY-15"] else 400)
 
         discount_balance = 2000  # 2000 sen = 20 ringgit
 
