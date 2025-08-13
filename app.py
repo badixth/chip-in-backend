@@ -124,8 +124,23 @@ def create_chip_in_session():
                 return jsonify({"error": "Missing required fields"}), 400
 
         elif form_type == "academy":
-            #test
-            return
+            player_1 = data.get("player_1")
+            full_name = player_1.get("name")
+            email = player_1.get("email")
+            phone = player_1.get("phone")
+            shipping_address = data.get("address")
+            email_marketing_consent_state = data.get(
+                "email_marketing_consent_state",
+                "unsubscribed",
+            )
+            notes = data.get(
+                "notes", ""
+            )  # Optional field with default value of empty string
+            items = data.get("items")
+            logging.info(f"order items: {items}")
+            logging.info(f"form data: {data}")
+            shopify_order_id = data.get("order_id") 
+            
 
         
 
