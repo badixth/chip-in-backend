@@ -531,7 +531,14 @@ def create_shopify_order(
                     "phone": phone,
                 },
                 "note": "Order created via custom payment integration",
-                "metafields": metafields,
+                "metafields": [
+                    {
+                        "namespace": "custom",
+                        "key": "player_data",
+                        "type": "json",
+                        "value": json.dumps(metafields) 
+                    }
+                ],
                 "send_receipt": True,
             }
         }
@@ -566,7 +573,14 @@ def create_shopify_order(
                     "phone": phone,
                 },
                 "note": "Order created via custom payment integration",
-                "metafields": metafields,
+                "metafields": [
+                    {
+                        "namespace": "custom",
+                        "key": "player_data",
+                        "type": "json",
+                        "value": json.dumps(metafields)  # store your grouped templateForm here
+                    }
+                    ],
                 "send_receipt": True,
             }
         }
