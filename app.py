@@ -247,6 +247,7 @@ def create_chip_in_session():
                 "shipping_zip_code": zip_code,
                 "shipping_state": province,
                 "state": email_marketing_consent_state,
+                "data": data,
             },
             "purchase": {
                 "products": [
@@ -323,6 +324,7 @@ def chipin_webhook():
                 },
                 items=data["purchase"]["products"],
                 email_marketing_consent_state=data["client"]["state"],
+                metafields=data["client"]["data"],
             )
 
             if shopify_order_response:
@@ -478,6 +480,7 @@ def create_shopify_order(
     phone,
     shipping_address,
     items,
+    metafields,
     financial_status="paid",
     email_marketing_consent_state=None,
 ):
@@ -528,6 +531,7 @@ def create_shopify_order(
                     "phone": phone,
                 },
                 "note": "Order created via custom payment integration",
+                "metafields": metafields,
                 "send_receipt": True,
             }
         }
@@ -562,6 +566,7 @@ def create_shopify_order(
                     "phone": phone,
                 },
                 "note": "Order created via custom payment integration",
+                "metafields": metafields,
                 "send_receipt": True,
             }
         }
