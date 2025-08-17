@@ -247,7 +247,6 @@ def create_chip_in_session():
                 "shipping_zip_code": zip_code,
                 "shipping_state": province,
                 "state": email_marketing_consent_state,
-                "data": data,
             },
             "purchase": {
                 "products": [
@@ -261,6 +260,9 @@ def create_chip_in_session():
                 ],
                 "total_override": total_override,
                 "currency": "MYR",
+                "metadata": {
+                    "shopify_payload": data  # store all your custom fields here
+                }
             },
             "success_redirect": success_redirect_url,  # Add the success_redirect URL here
             "notes": notes,
@@ -302,6 +304,7 @@ def chipin_webhook():
         # Get the JSON data from the POST request
         data = request.get_json()
         logging.info(f"Received Chip In webhook event: {data}")
+        print(json.dumps(data.client, indent=4)) 
 
         # Process the webhook data (log it for now)
         if data.get("status") == "paid":
