@@ -304,13 +304,13 @@ def chipin_webhook():
         # Get the JSON data from the POST request
         data = request.get_json()
         logging.info(f"Received Chip In webhook event: {data}")
-        print(json.dumps(data.client, indent=4)) 
 
         # Process the webhook data (log it for now)
         if data.get("status") == "paid":
             logging.info(
                 f"Payment received for Chip In order ID: {data['id']}. Creating Shopify order..."
             )
+            extra = data.get("purchase", {}).get("metadata", {}).get("shopify_payload", {})
 
             # Create Shopify order
             shopify_order_response = create_shopify_order(
@@ -327,7 +327,7 @@ def chipin_webhook():
                 },
                 items=data["purchase"]["products"],
                 email_marketing_consent_state=data["client"]["state"],
-                metafields=data["client"]["data"],
+                metafields=extra,
             )
 
             if shopify_order_response:
