@@ -310,7 +310,8 @@ def chipin_webhook():
             logging.info(
                 f"Payment received for Chip In order ID: {data['id']}. Creating Shopify order..."
             )
-            extra = data.get("purchase", {}).get("metadata", {}).get("shopify_payload", {})
+            extra = data['purchase']['metadata']['shopify_payload']
+            print(f"extra: {extra}")
 
             # Create Shopify order
             shopify_order_response = create_shopify_order(
@@ -606,6 +607,11 @@ def create_shopify_order(
         if created_customer:
             customer_id = created_customer["id"]
             logging.info(f"Customer ID from order response: {customer_id}")
+
+            order_id = response_json.get("order", {}).get("id")
+            meta_check_url = f"{SHOPIFY_STORE_URL}/admin/api/2024-10/orders/{order_id}/metafields.json"
+            resp = requests.get(meta_check_url, headers=headers)
+            print(f"resp: {resp.json()}")
 
             # Update email marketing consent if provided
             if email_marketing_consent_state:
