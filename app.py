@@ -310,7 +310,7 @@ def chipin_webhook():
             logging.info(
                 f"Payment received for Chip In order ID: {data['id']}. Creating Shopify order..."
             )
-            extra = data['purchase']['metadata']['shopify_payload']
+            extra = data['purchase']['metadata']['shopify_payload']['attributes']
             print(f"extra: {extra}")
 
             # Create Shopify order
