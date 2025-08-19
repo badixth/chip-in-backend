@@ -98,7 +98,6 @@ def create_chip_in_session():
     try:
         # Step 1: Get the JSON data sent from the frontend
         data = request.get_json()
-        print(json.dumps(data, indent=4)) 
 
         # Step 2: Extract the required fields from the incoming data
         form_type = data.get("formType")
@@ -188,18 +187,6 @@ def create_chip_in_session():
 
         # Prepare the success_redirect URL with dynamic data (e.g., order_id)
         success_redirect_url = f"{SHOPIFY_STORE_URL}/pages/thank-you-page?order_id={shopify_order_id}&status=paid"
-
-        # Extract the shipping address parts properly
-
-        
-
-        
-
-        # address1 = shipping_address.get("address1")
-        # city = shipping_address.get("city")
-        # province = shipping_address.get("province")
-        # zip_code = shipping_address.get("zip")
-        # country = shipping_address.get("country")
 
         shipping_fee = 0 if form_type == "academy" else (900 if province in ["MY-12", "MY-13", "MY-15"] else 400)
 
@@ -311,7 +298,6 @@ def chipin_webhook():
                 f"Payment received for Chip In order ID: {data['id']}. Creating Shopify order..."
             )
             extra = data['purchase']['metadata']['shopify_payload']['attributes']
-            print(f"extra: {extra}")
 
             # Create Shopify order
             shopify_order_response = create_shopify_order(
@@ -502,7 +488,7 @@ def create_shopify_order(
     # Split full name into first_name and last_name
     name_parts = name.split(" ", 1)
     first_name = name_parts[0]
-    last_name = name_parts[1] if len(name_parts) > 1 else ""
+    last_name = name_parts[1] if len(name_parts) > 1 else "."
 
     if customer:
         logging.info(f"Found existing customer with ID: {customer['id']}")
