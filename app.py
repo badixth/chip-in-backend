@@ -188,7 +188,19 @@ def create_chip_in_session():
         # Prepare the success_redirect URL with dynamic data (e.g., order_id)
         success_redirect_url = f"{SHOPIFY_STORE_URL}/pages/thank-you-page?order_id={shopify_order_id}&status=paid"
 
-        shipping_fee = 0 if form_type == "academy" else (900 if province in ["MY-12", "MY-13", "MY-15"] else 400)
+        if form_type == "academy":
+            shipping_fee = 0
+        else:
+            if country == "MY":
+                # Sabah/Sarawak/Labuan
+                if province in ["MY-12", "MY-13", "MY-15"]:
+                    shipping_fee = 900   # RM9
+                else:
+                    shipping_fee = 700   # RM7 for Semenanjung
+            elif country in ["BN", "ID", "SG"]:
+                shipping_fee = 5000      # RM50 for Brunei, Indonesia, Singapore
+            else:
+                shipping_fee = 0
 
         discount_balance = 2000  # 2000 sen = 20 ringgit
 
