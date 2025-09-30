@@ -200,7 +200,13 @@ def create_chip_in_session():
             elif country in ["BN", "ID", "SG"]:
                 shipping_fee = 5000      # RM50 for Brunei, Indonesia, Singapore
             else:
-                shipping_fee = 0
+                shipping_fee = 700
+        else:
+            shipping_fee = {
+                "BN": 4000,
+                "ID": 7000,
+                "SG": 11000
+            }.get(country, 0)
 
         discount_balance = 2000  # 2000 sen = 20 ringgit
 
@@ -321,7 +327,7 @@ def chipin_webhook():
                     "city": data["client"]["shipping_city"],
                     "province": data["client"]["shipping_state"],
                     "zip": data["client"]["shipping_zip_code"],
-                    "country": "MY",
+                    "country": data["client"]["shipping_country"],
                     "phone": data["client"]["phone"],
                 },
                 items=data["purchase"]["products"],
