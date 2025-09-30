@@ -190,15 +190,9 @@ def create_chip_in_session():
 
         if form_type == "academy":
             shipping_fee = 0
-        else:
-            if country == "MY":
-                # Sabah/Sarawak/Labuan
-                if province in ["MY-12", "MY-13", "MY-15"]:
-                    shipping_fee = 900   # RM9
-                else:
-                    shipping_fee = 700   # RM7 for Semenanjung
-            elif country in ["BN", "ID", "SG"]:
-                shipping_fee = 5000      # RM50 for Brunei, Indonesia, Singapore
+        elif country == "MY":
+            if province in ["MY-12", "MY-13", "MY-15"]:
+                shipping_fee = 900
             else:
                 shipping_fee = 700
         else:
