@@ -502,6 +502,21 @@ def create_shopify_order(
     first_name = name_parts[0]
     last_name = name_parts[1] if len(name_parts) > 1 else "."
 
+    # Shipping fee based on country and province
+    shipping_fee = 0
+    if shipping_address['country'] == "MY":
+        # Sabah, Sarawak, Labuan (MY-12 = Sabah, MY-13 = Sarawak, MY-15 = Labuan)
+        if shipping_address["province"] in ["MY-12", "MY-13", "MY-15"]:
+            shipping_fee = 9.00
+        else:
+            shipping_fee = 7.00
+    elif shipping_address['country'] == "SG":
+        shipping_fee = 40.00
+    elif shipping_address['country'] == "BN":
+        shipping_fee = 70.00
+    elif shipping_address['country'] == "ID":
+        shipping_fee = 110.00
+
     if customer:
         logging.info(f"Found existing customer with ID: {customer['id']}")
         # Customer exists, use the customer ID in the order payload
@@ -532,6 +547,14 @@ def create_shopify_order(
                     "country": metafields["country"],
                     "phone": phone,
                 },
+                "shipping_lines": [
+                    {
+                        "title": "Standard Shipping",
+                        "price": str(shipping_fee),  # must be string in Shopify API
+                        "code": "FlatRate",
+                        "source": "Custom"
+                    }
+                ],
                 "note": "Order created via custom payment integration",
                 "metafields": [
                     {
@@ -574,6 +597,14 @@ def create_shopify_order(
                     "country": metafields["country"],
                     "phone": phone,
                 },
+                "shipping_lines": [
+                    {
+                        "title": "Standard Shipping",
+                        "price": str(shipping_fee),  # must be string in Shopify API
+                        "code": "FlatRate",
+                        "source": "Custom"
+                    }
+                ],
                 "note": "Order created via custom payment integration",
                 "metafields": [
                     {
