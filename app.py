@@ -528,6 +528,7 @@ def create_shopify_order(
                     "first_name": first_name,
                     "last_name": last_name,
                 },
+                "inventory_behaviour": "decrement_obeying_policy",
                 "line_items": [
                     {
                         "title": item["name"],
@@ -578,6 +579,7 @@ def create_shopify_order(
                     "last_name": last_name,
                     "email": email,
                 },
+                "inventory_behaviour": "decrement_obeying_policy",
                 "line_items": [
                     {
                         "title": item["name"],
