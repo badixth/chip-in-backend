@@ -211,7 +211,16 @@ def create_chip_in_session():
             shipping_fee = 0
 
         for item in items:
-            price = float(item["price"]) * float(item["quantity"])
+            # validate original line price = quantity x produce price 
+            if float(item["final_line_price"]) != float(item["original_price"] * item["quantity"]):
+                return jsonify({"error": "Item price mismatch"}), 400
+
+            # validate final price = line price - total discounts
+            if float(item["final_line_price"]) != float(item["original_line_price"] - item["total_discount"]):
+                return jsonify({"error": "Item price mismatch"}), 400
+            
+            # price = float(item["price"]) * float(item["quantity"])
+            price = float(item["final_line_price"])
 
             if coupon_is_valid:
                 calculated_item_price = calculate_price_based_on_discount(
@@ -251,9 +260,12 @@ def create_chip_in_session():
                 "products": [
                     {
                         "name": item["name"],
-                        "price": item["price"],
+                        "price": item["original_price"],
                         "quantity": item["quantity"],
                         "category": item["variant_id"],
+                        "total_discount": item["total_discount"],
+                        "final_line_price": item["final_line_price"],
+                        "original_line_price": item["original_line_price"],
                     }
                     for item in items
                 ],
@@ -535,6 +547,10 @@ def create_shopify_order(
                         "quantity": int(float(item["quantity"])),
                         "price": item["price"] / 100,
                         "variant_id": item["category"],
+                        "total_discount": item.get("total_discount", 0) / 100,
+                        "final_line_price": item.get("final_line_price", 0) / 100,
+                        "original_line_price": item.get("original_line_price", 0) / 100
+
                     }
                     for item in items
                 ],
@@ -586,6 +602,9 @@ def create_shopify_order(
                         "quantity": int(float(item["quantity"])),
                         "price": item["price"] / 100,
                         "variant_id": item["category"],
+                        "total_discount": item.get("total_discount", 0) / 100,
+                        "final_line_price": item.get("final_line_price", 0) / 100,
+                        "original_line_price": item.get("original_line_price", 0) / 100
                     }
                     for item in items
                 ],
