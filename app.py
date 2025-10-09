@@ -223,7 +223,7 @@ def create_chip_in_session():
             total_discount = round(float(item["total_discount"]), 2)
 
             logging.info(f"final_line_price: {final_line_price}, original_price: {original_price}, quantity: {quantity} original_line_price: {original_line_price} total_discount: {total_discount}")
-            if round(float(item["final_line_price"]), 2) != round(float(item["original_price"]) * float(item["quantity"]), 2):
+            if round(float(item["original_price"]), 2) != round(float(item["original_price"]) * float(item["quantity"]), 2):
                 return jsonify({"error": "Item price mismatch this"}), 400
 
             # validate: final_line_price = original_line_price - total_discount
