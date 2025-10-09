@@ -1,4 +1,3 @@
-from decimal import ROUND_HALF_UP, Decimal
 import json
 from flask import Flask, request, jsonify
 from sqlalchemy.orm import sessionmaker
@@ -216,24 +215,16 @@ def create_chip_in_session():
             logging.info(f"item original_line_price: {item['original_line_price']}, quantity: {item['quantity']}, original_price: {item['original_price']}")
             logging.info(f"item final_line_price: {item['final_line_price']}, total_discount: {item['total_discount']}, original_line_price: {item['original_line_price']}")
             
-            def to_decimal(val):
-                return Decimal(str(val)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-
-            final_line_price = to_decimal(item["final_line_price"])
-            original_line_price = to_decimal(item["original_line_price"])
-            total_discount = to_decimal(item["total_discount"])
-            original_price = to_decimal(item["original_price"])
-            quantity = to_decimal(item["quantity"])
-
-            # validate base price × quantity
-            if original_price * quantity != original_line_price:
+            # validate: original_price * quantity = original_line_price
+            if round(float(item["final_line_price"]), 2) != round(float(item["original_price"]) * float(item["quantity"]), 2):
                 return jsonify({"error": "Item price mismatch this"}), 400
 
-            # validate discount math
-            if final_line_price != original_line_price - total_discount:
+            # validate: final_line_price = original_line_price - total_discount
+            if round(float(item["final_line_price"]), 2) != round(float(item["original_line_price"]) - float(item["total_discount"]), 2):
                 return jsonify({"error": "Item price mismatch that"}), 400
             
-            price = final_line_price
+            # price = float(item["price"]) * float(item["quantity"])
+            price = float(item["final_line_price"])
 
             if coupon_is_valid:
                 calculated_item_price = calculate_price_based_on_discount(
