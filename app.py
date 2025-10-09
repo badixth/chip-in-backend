@@ -211,8 +211,18 @@ def create_chip_in_session():
             shipping_fee = 0
 
         for item in items:
-           
+            # validate original line price = quantity x produce price 
+            logging.info(f"item original_line_price: {item['original_line_price']}, quantity: {item['quantity']}, original_price: {item['original_price']}")
+            logging.info(f"item final_line_price: {item['final_line_price']}, total_discount: {item['total_discount']}, original_line_price: {item['original_line_price']}")
+            
             # validate: original_price * quantity = original_line_price
+            final_line_price = round(float(item["final_line_price"]), 2)
+            original_price = round(float(item["original_price"]), 2)
+            quantity = round(float(item["quantity"]), 2)
+            original_line_price = round(float(item["original_line_price"]), 2)
+            total_discount = round(float(item["total_discount"]), 2)
+
+            logging.info(f"final_line_price: {final_line_price}, original_price: {original_price}, quantity: {quantity} original_line_price: {original_line_price} total_discount: {total_discount}")
             if round(float(item["final_line_price"]), 2) != round(float(item["original_price"]) * float(item["quantity"]), 2):
                 return jsonify({"error": "Item price mismatch this"}), 400
 
