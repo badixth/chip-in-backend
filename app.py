@@ -197,9 +197,9 @@ def create_chip_in_session():
                 shipping_fee = 700
         else:
             shipping_fee = {
-                "BN": 4000,
-                "ID": 7000,
-                "SG": 11000
+                "SG": 4000,
+                "BN": 7000,
+                "ID": 11000
             }.get(country, 0)
 
         discount_balance = 2000  # 2000 sen = 20 ringgit
