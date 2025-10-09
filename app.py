@@ -213,13 +213,13 @@ def create_chip_in_session():
         for item in items:
             # validate original line price = quantity x produce price 
             logging.info(f"item original_line_price: {item['original_line_price']}, quantity: {item['quantity']}, original_price: {item['original_price']}")
-            logging.info(f"item final_line_price: {item['final_line_price']}, total_discount: {item['total_discount']} ")
+            logging.info(f"item final_line_price: {item['final_line_price']}, total_discount: {item['total_discount']}, original_line_price: {item['original_line_price']}")
             if float(item["final_line_price"]) != float(item["original_price"] * item["quantity"]):
-                return jsonify({"error": "Item price mismatch"}), 400
+                return jsonify({"error": "Item price mismatch this"}), 400
 
             # validate final price = line price - total discounts
             if float(item["final_line_price"]) != float(item["original_line_price"] - item["total_discount"]):
-                return jsonify({"error": "Item price mismatch"}), 400
+                return jsonify({"error": "Item price mismatch that"}), 400
             
             # price = float(item["price"]) * float(item["quantity"])
             price = float(item["final_line_price"])
