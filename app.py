@@ -1,3 +1,4 @@
+from decimal import ROUND_HALF_UP, Decimal
 import json
 from flask import Flask, request, jsonify
 from sqlalchemy.orm import sessionmaker
@@ -214,15 +215,25 @@ def create_chip_in_session():
             # validate original line price = quantity x produce price 
             logging.info(f"item original_line_price: {item['original_line_price']}, quantity: {item['quantity']}, original_price: {item['original_price']}")
             logging.info(f"item final_line_price: {item['final_line_price']}, total_discount: {item['total_discount']}, original_line_price: {item['original_line_price']}")
-            if float(item["final_line_price"]) != float(item["original_price"] * item["quantity"]):
+            
+            def to_decimal(val):
+                return Decimal(str(val)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+            final_line_price = to_decimal(item["final_line_price"])
+            original_line_price = to_decimal(item["original_line_price"])
+            total_discount = to_decimal(item["total_discount"])
+            original_price = to_decimal(item["original_price"])
+            quantity = to_decimal(item["quantity"])
+
+            # validate base price × quantity
+            if original_price * quantity != original_line_price:
                 return jsonify({"error": "Item price mismatch this"}), 400
 
-            # validate final price = line price - total discounts
-            if float(item["final_line_price"]) != float(item["original_line_price"] - item["total_discount"]):
+            # validate discount math
+            if final_line_price != original_line_price - total_discount:
                 return jsonify({"error": "Item price mismatch that"}), 400
             
-            # price = float(item["price"]) * float(item["quantity"])
-            price = float(item["final_line_price"])
+            price = final_line_price
 
             if coupon_is_valid:
                 calculated_item_price = calculate_price_based_on_discount(
