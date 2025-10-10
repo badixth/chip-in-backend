@@ -212,17 +212,9 @@ def create_chip_in_session():
 
         for item in items:
             # validate original line price = quantity x produce price 
-            logging.info(f"item original_line_price: {item['original_line_price']}, quantity: {item['quantity']}, original_price: {item['original_price']}")
-            logging.info(f"item final_line_price: {item['final_line_price']}, total_discount: {item['total_discount']}, original_line_price: {item['original_line_price']}")
             
             # validate: original_price * quantity = original_line_price
-            final_line_price = round(float(item["final_line_price"]), 2)
-            original_price = round(float(item["original_price"]), 2)
-            quantity = round(float(item["quantity"]), 2)
-            original_line_price = round(float(item["original_line_price"]), 2)
-            total_discount = round(float(item["total_discount"]), 2)
-
-            logging.info(f"final_line_price: {final_line_price}, original_price: {original_price}, quantity: {quantity} original_line_price: {original_line_price} total_discount: {total_discount}")
+            # recheck this
             if round(float(item["original_price"]), 2) != round(float(item["original_price"]) * float(item["quantity"]), 2):
                 return jsonify({"error": "Item price mismatch this"}), 400
 
@@ -277,6 +269,7 @@ def create_chip_in_session():
                         "total_discount": item["total_discount"],
                         "final_line_price": item["final_line_price"],
                         "original_line_price": item["original_line_price"],
+                        "line_level_discount_allocations": item.get("line_level_discount_allocations", []),
                     }
                     for item in items
                 ],
@@ -560,10 +553,17 @@ def create_shopify_order(
                         "variant_id": item["category"],
                         "total_discount": item.get("total_discount", 0) / 100,
                         "final_line_price": item.get("final_line_price", 0) / 100,
-                        "original_line_price": item.get("original_line_price", 0) / 100
-
+                        "original_line_price": item.get("original_line_price", 0) / 100,
+                        "applied_discount": {
+                            "description": alloc["discount_application"]["title"],
+                            "title": alloc["discount_application"]["title"],
+                            "value_type": alloc["discount_application"]["value_type"],
+                            "value": str(alloc["discount_application"]["value"]),
+                            "amount": str(float(alloc["amount"]))
+                        }
                     }
                     for item in items
+                    for alloc in item.get("line_level_discount_allocations", [])
                 ],
                 "shipping_address": {
                     "first_name": first_name,
