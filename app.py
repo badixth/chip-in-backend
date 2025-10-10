@@ -269,7 +269,6 @@ def create_chip_in_session():
                         "total_discount": item["total_discount"],
                         "final_line_price": item["final_line_price"],
                         "original_line_price": item["original_line_price"],
-                        "line_level_discount_allocations": item.get("line_level_discount_allocations", []),
                     }
                     for item in items
                 ],
@@ -553,17 +552,10 @@ def create_shopify_order(
                         "variant_id": item["category"],
                         "total_discount": item.get("total_discount", 0) / 100,
                         "final_line_price": item.get("final_line_price", 0) / 100,
-                        "original_line_price": item.get("original_line_price", 0) / 100,
-                        "applied_discount": {
-                            "description": alloc["discount_application"]["title"],
-                            "title": alloc["discount_application"]["title"],
-                            "value_type": alloc["discount_application"]["value_type"],
-                            "value": str(alloc["discount_application"]["value"]),
-                            "amount": str(float(alloc["amount"]))
-                        }
+                        "original_line_price": item.get("original_line_price", 0) / 100
+
                     }
                     for item in items
-                    for alloc in item.get("line_level_discount_allocations", [])
                 ],
                 "shipping_address": {
                     "first_name": first_name,
