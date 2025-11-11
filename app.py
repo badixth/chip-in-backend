@@ -516,6 +516,8 @@ def create_shopify_order(
     first_name = name_parts[0]
     last_name = name_parts[1] if len(name_parts) > 1 else "."
 
+    logging.info(f"items response: {items}")
+
     # Shipping fee based on country and province
     requires_shipping = any(p["requires_shipping"] for p in items)
 
