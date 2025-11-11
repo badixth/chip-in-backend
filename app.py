@@ -556,7 +556,7 @@ def create_shopify_order(
                         "title": item["name"],
                         "quantity": int(float(item["quantity"])),
                         "price": item["price"] / 100,
-                        "variant_id": item["category"],
+                        "variant_id": item["variant_id"],
                         "total_discount": item.get("total_discount", 0) / 100,
                         "final_line_price": item.get("final_line_price", 0) / 100,
                         "original_line_price": item.get("original_line_price", 0) / 100
@@ -611,7 +611,7 @@ def create_shopify_order(
                         "title": item["name"],
                         "quantity": int(float(item["quantity"])),
                         "price": item["price"] / 100,
-                        "variant_id": item["category"],
+                        "variant_id": item["variant_id"],
                         "total_discount": item.get("total_discount", 0) / 100,
                         "final_line_price": item.get("final_line_price", 0) / 100,
                         "original_line_price": item.get("original_line_price", 0) / 100
