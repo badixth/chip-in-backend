@@ -188,7 +188,9 @@ def create_chip_in_session():
         # Prepare the success_redirect URL with dynamic data (e.g., order_id)
         success_redirect_url = f"{SHOPIFY_STORE_URL}/pages/thank-you-page?order_id={shopify_order_id}&status=paid"
 
-        if form_type == "academy":
+        requires_shipping = any(item.get("requires_shipping", True) for item in items)
+
+        if requires_shipping != True:
             shipping_fee = 0
         elif country == "MY":
             if province in ["MY-12", "MY-13", "MY-15"]:
@@ -205,10 +207,6 @@ def create_chip_in_session():
         discount_balance = 2000  # 2000 sen = 20 ringgit
 
         total_override = 0
-
-        has_shipping = any(item.get("shipping", True) for item in items)
-        if not has_shipping:
-            shipping_fee = 0
 
         for item in items:
             # validate original line price = quantity x produce price 
@@ -269,6 +267,7 @@ def create_chip_in_session():
                         "total_discount": item["total_discount"],
                         "final_line_price": item["final_line_price"],
                         "original_line_price": item["original_line_price"],
+                        "require_shipping": item["requires_shipping"],
                     }
                     for item in items
                 ],
@@ -518,19 +517,25 @@ def create_shopify_order(
     last_name = name_parts[1] if len(name_parts) > 1 else "."
 
     # Shipping fee based on country and province
-    shipping_fee = 0
-    if shipping_address['country'] == "MY":
-        # Sabah, Sarawak, Labuan (MY-12 = Sabah, MY-13 = Sarawak, MY-15 = Labuan)
-        if shipping_address["province"] in ["MY-12", "MY-13", "MY-15"]:
-            shipping_fee = 9.00
+    require_shipping = any(p["require_shipping"] for p in items)
+
+    if not require_shipping:
+        shipping_fee = 0.00
+    else:
+        if shipping_address['country'] == "MY":
+            # Sabah, Sarawak, Labuan (MY-12 = Sabah, MY-13 = Sarawak, MY-15 = Labuan)
+            if shipping_address["province"] in ["MY-12", "MY-13", "MY-15"]:
+                shipping_fee = 9.00
+            else:
+                shipping_fee = 7.00
+        elif shipping_address['country'] == "SG":
+            shipping_fee = 40.00
+        elif shipping_address['country'] == "BN":
+            shipping_fee = 70.00
+        elif shipping_address['country'] == "ID":
+            shipping_fee = 110.00
         else:
-            shipping_fee = 7.00
-    elif shipping_address['country'] == "SG":
-        shipping_fee = 40.00
-    elif shipping_address['country'] == "BN":
-        shipping_fee = 70.00
-    elif shipping_address['country'] == "ID":
-        shipping_fee = 110.00
+            shipping_fee = 0.00  # default for other countries
 
     if customer:
         logging.info(f"Found existing customer with ID: {customer['id']}")
