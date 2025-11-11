@@ -338,7 +338,7 @@ def chipin_webhook():
                     "country": data["client"]["shipping_country"],
                     "phone": data["client"]["phone"],
                 },
-                items=data["purchase"]["products"],
+                items=data['purchase']['metadata']['shopify_payload']['items'],
                 email_marketing_consent_state=data["client"]["state"],
                 metafields=extra,
             )
