@@ -267,7 +267,7 @@ def create_chip_in_session():
                         "total_discount": item["total_discount"],
                         "final_line_price": item["final_line_price"],
                         "original_line_price": item["original_line_price"],
-                        "require_shipping": item["requires_shipping"],
+                        "requires_shipping": item["requires_shipping"],
                     }
                     for item in items
                 ],
@@ -517,9 +517,9 @@ def create_shopify_order(
     last_name = name_parts[1] if len(name_parts) > 1 else "."
 
     # Shipping fee based on country and province
-    require_shipping = any(p["require_shipping"] for p in items)
+    requires_shipping = any(p["requires_shipping"] for p in items)
 
-    if not require_shipping:
+    if not requires_shipping:
         shipping_fee = 0.00
     else:
         if shipping_address['country'] == "MY":
