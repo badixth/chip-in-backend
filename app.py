@@ -260,6 +260,7 @@ def create_chip_in_session():
             "purchase": {
                 "products": [
                     {
+                        "product_id": item["product_id"],
                         "name": item["name"],
                         "price": item["original_price"],
                         "quantity": item["quantity"],
@@ -553,6 +554,7 @@ def create_shopify_order(
                 "inventory_behaviour": "decrement_obeying_policy",
                 "line_items": [
                     {
+                        "product_id": item["product_id"],
                         "title": item["name"],
                         "quantity": int(float(item["quantity"])),
                         "price": item["price"] / 100,
@@ -608,6 +610,7 @@ def create_shopify_order(
                 "inventory_behaviour": "decrement_obeying_policy",
                 "line_items": [
                     {
+                        "product_id": item["product_id"],
                         "title": item["name"],
                         "quantity": int(float(item["quantity"])),
                         "price": item["price"] / 100,
