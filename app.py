@@ -672,53 +672,7 @@ def create_shopify_order(
 
         if metafields['formType'] == 'academy':
             line_items = order_data.get("order", {}).get("line_items", [])
-
-            if not order_id or not line_items:
-                logging.warning("No order ID or line items found. Skipping metafield update.")
-                return
-            
-            for item in line_items:
-                product_id = item.get("product_id")
-                quantity = item.get("quantity", 1)
-
-                metafield_url = f"{SHOPIFY_STORE_URL}/admin/api/2024-10/products/{product_id}/metafields.json"
-
-                if not product_id:
-                    logging.warning(f"No product_id found in line item: {item}")
-                    continue
-
-                resp = requests.get(metafield_url, headers=headers)
-                if resp.status_code != 200:
-                    logging.warning(f"Failed to fetch metafields for product {product_id}: {resp.text}")
-                    continue
-
-                metafields = resp.json().get("metafields", [])
-                existing = next((m for m in metafields if m["namespace"] == "custom" and m["key"] == "purchase_count"), None)
-                current_value = int(existing["value"]) if existing else 0
-                new_value = current_value + quantity
-
-                metafield_data = {
-                    "metafield": {
-                        "namespace": "custom",
-                        "key": "purchase_count",
-                        "type": "number_integer",
-                        "value": new_value
-                    }
-                }
-
-                # 2. Update or create metafield
-                if existing:
-                    update_url = f"{SHOPIFY_STORE_URL}/admin/api/2024-10/metafields/{existing['id']}.json"
-                    update_resp = requests.put(update_url, headers=headers, json=metafield_data)
-                    action = "Updated"
-                else:
-                    update_resp = requests.post(metafield_url, headers=headers, json=metafield_data)
-                    action = "Created"
-
-                if update_resp.status_code in [200, 201]:
-                    logging.info(f"{action} purchase_count for product {product_id} to {new_value}")
-                else:
-                    logging.warning(f"Failed to update metafield for product {product_id}: {update_resp.text}")
+            update_purchase_counts(order_id, line_items, SHOPIFY_STORE_URL, headers)
 
 
         if created_customer:
@@ -832,6 +786,89 @@ def validate_coupon():
         )
     else:
         return jsonify({"valid": False, "message": "Invalid coupon code"}), 400
+    
+def update_purchase_counts(order_id, line_items, shopify_store_url, headers):
+    """
+    Updates product and order metafields for purchase counts.
+
+    Args:
+        order_id (int): The Shopify order ID.
+        line_items (list): List of line items from the order.
+        shopify_store_url (str): Your Shopify store base URL (e.g. https://yourshop.myshopify.com).
+        headers (dict): Headers with access token and content type.
+
+    Returns:
+        None
+    """
+    if not order_id or not line_items:
+        logging.warning("No order ID or line items found. Skipping metafield update.")
+        return
+
+    for item in line_items:
+        product_id = item.get("product_id")
+        quantity = item.get("quantity", 1)
+
+        if not product_id:
+            logging.warning(f"No product_id found in line item: {item}")
+            continue
+
+        metafield_url = f"{shopify_store_url}/admin/api/2024-10/products/{product_id}/metafields.json"
+
+        # 1️⃣ Fetch existing metafields for this product
+        resp = requests.get(metafield_url, headers=headers)
+        if resp.status_code != 200:
+            logging.warning(f"Failed to fetch metafields for product {product_id}: {resp.text}")
+            continue
+
+        metafields = resp.json().get("metafields", [])
+        existing = next(
+            (m for m in metafields if m["namespace"] == "custom" and m["key"] == "purchase_count"),
+            None
+        )
+
+        current_value = int(existing["value"]) if existing else 0
+        new_value = current_value + quantity
+
+        metafield_data = {
+            "metafield": {
+                "namespace": "custom",
+                "key": "purchase_count",
+                "type": "number_integer",
+                "value": new_value
+            }
+        }
+
+        # 2️⃣ Update or create the product metafield
+        if existing:
+            update_url = f"{shopify_store_url}/admin/api/2024-10/metafields/{existing['id']}.json"
+            update_resp = requests.put(update_url, headers=headers, json=metafield_data)
+            action = "Updated"
+        else:
+            update_resp = requests.post(metafield_url, headers=headers, json=metafield_data)
+            action = "Created"
+
+        if update_resp.status_code in [200, 201]:
+            logging.info(f"{action} purchase_count for product {product_id} to {new_value}")
+
+            # 3️⃣ Add to the order metafields too
+            order_meta_url = f"{shopify_store_url}/admin/api/2024-10/orders/{order_id}/metafields.json"
+            order_meta_data = {
+                "metafield": {
+                    "namespace": "custom",
+                    "key": f"purchase_count",
+                    "type": "number_integer",
+                    "value": new_value
+                }
+            }
+
+            order_meta_resp = requests.post(order_meta_url, headers=headers, json=order_meta_data)
+
+            if order_meta_resp.status_code in [200, 201]:
+                logging.info(f"✅ Added purchase_count_{product_id} metafield to order {order_id} (value={new_value})")
+            else:
+                logging.warning(f"⚠️ Failed to create order metafield for product {product_id}: {order_meta_resp.text}")
+        else:
+            logging.warning(f"Failed to update metafield for product {product_id}: {update_resp.text}")
 
 
 # Start the Flask server
