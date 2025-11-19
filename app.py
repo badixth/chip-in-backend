@@ -573,7 +573,7 @@ def create_shopify_order(
                     "city": shipping_address["city"],
                     "province": shipping_address["province"],
                     "zip": shipping_address["zip"],
-                    "country": metafields["country"],
+                    "country": shipping_address["country"],
                     "phone": phone,
                 },
                 "shipping_lines": [
@@ -628,7 +628,7 @@ def create_shopify_order(
                     "city": shipping_address["city"],
                     "province": shipping_address["province"],
                     "zip": shipping_address["zip"],
-                    "country": metafields["country"],
+                    "country": shipping_address["country"],
                     "phone": phone,
                 },
                 "shipping_lines": [
