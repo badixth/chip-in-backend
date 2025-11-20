@@ -550,7 +550,7 @@ def create_shopify_order(
     ]
 
     if metafields['formType'] == 'academy':
-        line_items = order_data['order']['line_items']
+        line_items = items
         purchase_count = update_purchase_counts( line_items, SHOPIFY_STORE_URL, headers)
         if purchase_count:
             print(f"Purchase_count metafield data: {purchase_count}")
