@@ -540,6 +540,22 @@ def create_shopify_order(
         else:
             shipping_fee = 0.00  # default for other countries
 
+    order_metafields = [
+        {
+            "namespace": "custom",
+            "key": "player_data",
+            "type": "json",
+            "value": json.dumps(metafields)
+        }
+    ]
+
+    if metafields['formType'] == 'academy':
+        line_items = order_data['order']['line_items']
+        purchase_count = update_purchase_counts( line_items, SHOPIFY_STORE_URL, headers)
+        if purchase_count:
+            print(f"Purchase_count metafield data: {purchase_count}")
+            order_metafields.append(purchase_count)
+
     if customer:
         logging.info(f"Found existing customer with ID: {customer['id']}")
         # Customer exists, use the customer ID in the order payload
@@ -585,14 +601,7 @@ def create_shopify_order(
                     }
                 ],
                 "note": "Order created via custom payment integration",
-                "metafields": [
-                    {
-                        "namespace": "custom",
-                        "key": "player_data",
-                        "type": "json",
-                        "value": json.dumps(metafields) 
-                    }
-                ],
+                "metafields": order_metafields,
                 "send_receipt": True,
             }
         }
@@ -640,14 +649,7 @@ def create_shopify_order(
                     }
                 ],
                 "note": "Order created via custom payment integration",
-                "metafields": [
-                    {
-                        "namespace": "custom",
-                        "key": "player_data",
-                        "type": "json",
-                        "value": json.dumps(metafields)  # store your grouped templateForm here
-                    }
-                    ],
+                "metafields": order_metafields,
                 "send_receipt": True,
             }
         }
@@ -669,11 +671,6 @@ def create_shopify_order(
 
         order_id = response_json.get("order", {}).get("id")
         meta_check_url = f"{SHOPIFY_STORE_URL}/admin/api/2024-10/orders/{order_id}/metafields.json"
-
-        if metafields['formType'] == 'academy':
-            line_items = order_data.get("order", {}).get("line_items", [])
-            update_purchase_counts(order_id, line_items, SHOPIFY_STORE_URL, headers)
-
 
         if created_customer:
             customer_id = created_customer["id"]
@@ -787,21 +784,20 @@ def validate_coupon():
     else:
         return jsonify({"valid": False, "message": "Invalid coupon code"}), 400
     
-def update_purchase_counts(order_id, line_items, shopify_store_url, headers):
+def update_purchase_counts(line_items, shopify_store_url, headers):
     """
-    Updates product and order metafields for purchase counts.
+    Update order metafields for purchase counts.
 
     Args:
-        order_id (int): The Shopify order ID.
         line_items (list): List of line items from the order.
         shopify_store_url (str): Your Shopify store base URL (e.g. https://yourshop.myshopify.com).
         headers (dict): Headers with access token and content type.
 
     Returns:
-        None
+        dict: Metafield data for purchase count updates.
     """
-    if not order_id or not line_items:
-        logging.warning("No order ID or line items found. Skipping metafield update.")
+    if not line_items:
+        logging.warning("No line items found. Skipping metafield update.")
         return
 
     for item in line_items:
@@ -829,46 +825,47 @@ def update_purchase_counts(order_id, line_items, shopify_store_url, headers):
         current_value = int(existing["value"]) if existing else 0
         new_value = current_value + quantity
 
-        metafield_data = {
-            "metafield": {
-                "namespace": "custom",
-                "key": "purchase_count",
-                "type": "number_integer",
-                "value": new_value
-            }
+        metafield_data =  {
+            "namespace": "custom",
+            "key": "purchase_count",
+            "type": "number_integer",
+            "value": new_value
         }
 
+        return metafield_data
+        
+
         # 2️⃣ Update or create the product metafield
-        if existing:
-            update_url = f"{shopify_store_url}/admin/api/2024-10/metafields/{existing['id']}.json"
-            update_resp = requests.put(update_url, headers=headers, json=metafield_data)
-            action = "Updated"
-        else:
-            update_resp = requests.post(metafield_url, headers=headers, json=metafield_data)
-            action = "Created"
+        # if existing:
+        #     update_url = f"{shopify_store_url}/admin/api/2024-10/metafields/{existing['id']}.json"
+        #     update_resp = requests.put(update_url, headers=headers, json=metafield_data)
+        #     action = "Updated"
+        # else:
+        #     update_resp = requests.post(metafield_url, headers=headers, json=metafield_data)
+        #     action = "Created"
 
-        if update_resp.status_code in [200, 201]:
-            logging.info(f"{action} purchase_count for product {product_id} to {new_value}")
+        # if update_resp.status_code in [200, 201]:
+        #     logging.info(f"{action} purchase_count for product {product_id} to {new_value}")
 
-            # 3️⃣ Add to the order metafields too
-            order_meta_url = f"{shopify_store_url}/admin/api/2024-10/orders/{order_id}/metafields.json"
-            order_meta_data = {
-                "metafield": {
-                    "namespace": "custom",
-                    "key": f"purchase_count",
-                    "type": "number_integer",
-                    "value": new_value
-                }
-            }
+        #     # 3️⃣ Add to the order metafields too
+        #     order_meta_url = f"{shopify_store_url}/admin/api/2024-10/orders/{order_id}/metafields.json"
+        #     order_meta_data = {
+        #         "metafield": {
+        #             "namespace": "custom",
+        #             "key": f"purchase_count",
+        #             "type": "number_integer",
+        #             "value": new_value
+        #         }
+        #     }
 
-            order_meta_resp = requests.post(order_meta_url, headers=headers, json=order_meta_data)
+        #     order_meta_resp = requests.post(order_meta_url, headers=headers, json=order_meta_data)
 
-            if order_meta_resp.status_code in [200, 201]:
-                logging.info(f"✅ Added purchase_count_{product_id} metafield to order {order_id} (value={new_value})")
-            else:
-                logging.warning(f"⚠️ Failed to create order metafield for product {product_id}: {order_meta_resp.text}")
-        else:
-            logging.warning(f"Failed to update metafield for product {product_id}: {update_resp.text}")
+        #     if order_meta_resp.status_code in [200, 201]:
+        #         logging.info(f"✅ Added purchase_count_{product_id} metafield to order {order_id} (value={new_value})")
+        #     else:
+        #         logging.warning(f"⚠️ Failed to create order metafield for product {product_id}: {order_meta_resp.text}")
+        # else:
+        #     logging.warning(f"Failed to update metafield for product {product_id}: {update_resp.text}")
 
 
 # Start the Flask server
