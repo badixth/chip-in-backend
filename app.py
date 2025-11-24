@@ -829,7 +829,7 @@ def update_purchase_counts(line_items, shopify_store_url, headers):
             "namespace": "custom",
             "key": "purchase_count",
             "type": "number_integer",
-            "value": new_value
+            "value": str(new_value)
         }
 
         
@@ -844,7 +844,12 @@ def update_purchase_counts(line_items, shopify_store_url, headers):
 
         if update_resp.status_code in [200, 201]:
             logging.info(f"{action} purchase_count for product {product_id} to {new_value}")
-            return metafield_data
+            return {
+                "namespace": "custom",
+                "key": "purchase_count",
+                "type": "number_integer",
+                "value": new_value
+            }
 
         #     # 3️⃣ Add to the order metafields too
         #     order_meta_url = f"{shopify_store_url}/admin/api/2024-10/orders/{order_id}/metafields.json"
