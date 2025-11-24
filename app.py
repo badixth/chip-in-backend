@@ -832,20 +832,19 @@ def update_purchase_counts(line_items, shopify_store_url, headers):
             "value": new_value
         }
 
-        return metafield_data
         
-
         # 2️⃣ Update or create the product metafield
-        # if existing:
-        #     update_url = f"{shopify_store_url}/admin/api/2024-10/metafields/{existing['id']}.json"
-        #     update_resp = requests.put(update_url, headers=headers, json=metafield_data)
-        #     action = "Updated"
-        # else:
-        #     update_resp = requests.post(metafield_url, headers=headers, json=metafield_data)
-        #     action = "Created"
+        if existing:
+            update_url = f"{shopify_store_url}/admin/api/2024-10/metafields/{existing['id']}.json"
+            update_resp = requests.put(update_url, headers=headers, json=metafield_data)
+            action = "Updated"
+        else:
+            update_resp = requests.post(metafield_url, headers=headers, json=metafield_data)
+            action = "Created"
 
-        # if update_resp.status_code in [200, 201]:
-        #     logging.info(f"{action} purchase_count for product {product_id} to {new_value}")
+        if update_resp.status_code in [200, 201]:
+            logging.info(f"{action} purchase_count for product {product_id} to {new_value}")
+            return metafield_data
 
         #     # 3️⃣ Add to the order metafields too
         #     order_meta_url = f"{shopify_store_url}/admin/api/2024-10/orders/{order_id}/metafields.json"
@@ -864,8 +863,8 @@ def update_purchase_counts(line_items, shopify_store_url, headers):
         #         logging.info(f"✅ Added purchase_count_{product_id} metafield to order {order_id} (value={new_value})")
         #     else:
         #         logging.warning(f"⚠️ Failed to create order metafield for product {product_id}: {order_meta_resp.text}")
-        # else:
-        #     logging.warning(f"Failed to update metafield for product {product_id}: {update_resp.text}")
+        else:
+            logging.warning(f"Failed to update metafield for product {product_id}: {update_resp.text}")
 
 
 # Start the Flask server
