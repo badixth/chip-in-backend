@@ -274,13 +274,6 @@ def create_chip_in_session():
                 ],
                 "total_override": total_override,
                 "currency": "MYR",
-                "discount_codes": [
-                    {
-                        "code": coupon_code,
-                        "amount": discount_value,
-                        "type": value_type 
-                    }
-                ] if coupon_is_valid else [],
                 "metadata": {
                     "shopify_payload": data  # store all your custom fields here
                 }
@@ -348,7 +341,6 @@ def chipin_webhook():
                 },
                 items=data['purchase']['metadata']['shopify_payload']['items'],
                 email_marketing_consent_state=data["client"]["state"],
-                coupon_code=data["purchase"]["discount_codes"],
                 metafields=extra,
             )
 
@@ -508,7 +500,6 @@ def create_shopify_order(
     metafields,
     financial_status="paid",
     email_marketing_consent_state=None,
-    coupon_code=None,
 ):
     customer = find_shopify_customer_by_email(email)
 
@@ -591,13 +582,6 @@ def create_shopify_order(
                     }
                     for item in items
                 ],
-                "discount_codes": [
-                    {
-                        "code": coupon_code[0]["code"],
-                        "amount": coupon_code[0]["amount"],
-                        "type": coupon_code[0]["type"] 
-                    }
-                ] if coupon_code else [],
                 "shipping_address": {
                     "first_name": first_name,
                     "last_name": last_name,
@@ -646,13 +630,6 @@ def create_shopify_order(
                     }
                     for item in items
                 ],
-                "discount_codes": [
-                    {
-                        "code": coupon_code[0]["code"],
-                        "amount": coupon_code[0]["amount"],
-                        "type": coupon_code[0]["type"] 
-                    }
-                ] if coupon_code else [],
                 "shipping_address": {
                     "first_name": first_name,
                     "last_name": last_name,
