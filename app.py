@@ -672,7 +672,7 @@ def create_shopify_order(
             }
         }
 
-        logging.info(f"Shopify order data: {order_data}")
+    logging.info(f"Shopify order data: {order_data}")
 
     response = requests.post(shopify_order_url, json=order_data, headers=headers)
     logging.info(f"POST shopify order url: {response.content}")
