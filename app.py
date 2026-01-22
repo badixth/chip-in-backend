@@ -341,6 +341,7 @@ def chipin_webhook():
                 },
                 items=data['purchase']['metadata']['shopify_payload']['items'],
                 email_marketing_consent_state=data["client"]["state"],
+                coupon_code=data['purchase']['metadata']['shopify_payload']['coupon_code'],
                 metafields=extra,
             )
 
@@ -498,6 +499,7 @@ def create_shopify_order(
     shipping_address,
     items,
     metafields,
+    coupon_code=None,
     financial_status="paid",
     email_marketing_consent_state=None,
 ):
@@ -518,6 +520,20 @@ def create_shopify_order(
     last_name = name_parts[1] if len(name_parts) > 1 else "."
 
     logging.info(f"items response: {items}")
+
+    #Apply coupon code if any
+    if coupon_code:
+        coupon_is_valid, discount_value, value_type = validate_shopify_coupon(
+            coupon_code
+        )
+        if coupon_is_valid:
+            discount_codes = [
+                    {
+                        "code": coupon_code,
+                        "amount": discount_value,
+                        "type": value_type 
+                    }
+                ]
 
     # Shipping fee based on country and province
     requires_shipping = any(p["requires_shipping"] for p in items)
@@ -582,6 +598,7 @@ def create_shopify_order(
                     }
                     for item in items
                 ],
+                "discount_codes": discount_codes,
                 "shipping_address": {
                     "first_name": first_name,
                     "last_name": last_name,
@@ -630,6 +647,7 @@ def create_shopify_order(
                     }
                     for item in items
                 ],
+                "discount_codes": discount_codes,
                 "shipping_address": {
                     "first_name": first_name,
                     "last_name": last_name,
