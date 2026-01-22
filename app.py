@@ -530,8 +530,8 @@ def create_shopify_order(
             discount_codes = [
                     {
                         "code": coupon_code,
-                        "amount": discount_value,
-                        "type": value_type 
+                        "amount": abs(float(discount_value)),
+                        "type": value_type
                     }
                 ]
 
