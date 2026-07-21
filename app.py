@@ -504,10 +504,17 @@ def check_stock_availability(items):
         variant_id = item.get("variant_id")
         requested = int(float(item.get("quantity", 1)))
         try:
-            variant = requests.get(
+            variant_resp = requests.get(
                 f"{SHOPIFY_STORE_URL}/admin/api/2024-10/variants/{variant_id}.json",
                 headers=headers,
-            ).json().get("variant", {})
+            )
+            if variant_resp.status_code != 200:
+                logging.error(
+                    f"stock check: variant {variant_id} lookup returned "
+                    f"{variant_resp.status_code}: {variant_resp.content}"
+                )
+                continue  # fail open
+            variant = variant_resp.json().get("variant", {})
 
             # Untracked inventory -> always sellable.
             if not variant.get("inventory_management"):
@@ -517,11 +524,32 @@ def check_stock_availability(items):
                 continue
 
             inventory_item_id = variant.get("inventory_item_id")
-            levels = requests.get(
+            if not inventory_item_id:
+                logging.error(f"stock check: variant {variant_id} has no inventory_item_id")
+                continue  # fail open
+
+            levels_resp = requests.get(
                 f"{SHOPIFY_STORE_URL}/admin/api/2024-10/inventory_levels.json"
                 f"?inventory_item_ids={inventory_item_id}",
                 headers=headers,
-            ).json().get("inventory_levels", [])
+            )
+            if levels_resp.status_code != 200:
+                logging.error(
+                    f"stock check: inventory_levels returned {levels_resp.status_code} "
+                    f"for variant {variant_id}: {levels_resp.content} "
+                    "(check the app has read_inventory + read_locations scopes)"
+                )
+                continue  # fail open
+
+            levels = levels_resp.json().get("inventory_levels", [])
+            # No levels returned means we could not determine stock -- never
+            # treat that as zero, or a permissions issue blocks every checkout.
+            if not levels:
+                logging.error(
+                    f"stock check: no inventory levels for variant {variant_id} "
+                    f"(inventory_item_id {inventory_item_id}) -- allowing checkout"
+                )
+                continue  # fail open
 
             available = sum((lvl.get("available") or 0) for lvl in levels)
             logging.info(
