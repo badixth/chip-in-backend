@@ -243,6 +243,23 @@ def create_chip_in_session():
 
         total_override += shipping_fee  # shipping fee
 
+        # Block checkout before payment if any item is out of stock, so the
+        # customer never pays for something the webhook can't fulfill.
+        out_of_stock = check_stock_availability(items)
+        if out_of_stock:
+            logging.warning(f"Blocking checkout, out of stock: {out_of_stock}")
+            return (
+                jsonify(
+                    {
+                        "error": "out_of_stock",
+                        "message": "Sorry, the following item(s) are out of stock: "
+                        + ", ".join(out_of_stock),
+                        "items": out_of_stock,
+                    }
+                ),
+                409,
+            )
+
         payload = {
             "client": {
                 "email": email,
@@ -472,6 +489,51 @@ def find_shopify_customer_by_phone(phone):
                 return customers[0]  # Return the first customer if found
 
     return None
+
+
+def check_stock_availability(items):
+    """Return names of out-of-stock items (tracked, deny policy, available <
+    requested). Empty list = all fulfillable. Fails open on lookup errors."""
+    headers = {
+        "X-Shopify-Access-Token": SHOPIFY_API_KEY,
+        "Content-Type": "application/json",
+    }
+    out_of_stock = []
+
+    for item in items:
+        variant_id = item.get("variant_id")
+        requested = int(float(item.get("quantity", 1)))
+        try:
+            variant = requests.get(
+                f"{SHOPIFY_STORE_URL}/admin/api/2024-10/variants/{variant_id}.json",
+                headers=headers,
+            ).json().get("variant", {})
+
+            # Untracked inventory -> always sellable.
+            if not variant.get("inventory_management"):
+                continue
+            # Shop allows overselling this variant -> sellable.
+            if variant.get("inventory_policy") == "continue":
+                continue
+
+            inventory_item_id = variant.get("inventory_item_id")
+            levels = requests.get(
+                f"{SHOPIFY_STORE_URL}/admin/api/2024-10/inventory_levels.json"
+                f"?inventory_item_ids={inventory_item_id}",
+                headers=headers,
+            ).json().get("inventory_levels", [])
+
+            available = sum((lvl.get("available") or 0) for lvl in levels)
+            logging.info(
+                f"stock check: variant {variant_id} available {available}, requested {requested}"
+            )
+            if available < requested:
+                out_of_stock.append(item.get("name", str(variant_id)))
+        except Exception as e:
+            logging.error(f"Stock check failed for variant {variant_id}: {e}")
+            continue  # fail open
+
+    return out_of_stock
 
 
 def find_shopify_customer_by_email(email):
