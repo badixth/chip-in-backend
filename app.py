@@ -189,9 +189,11 @@ def create_chip_in_session():
         coupon_is_valid = False
         discount_value = 0
         value_type = None
-        coupon_is_valid, discount_value, value_type = validate_shopify_coupon(
-            coupon_code
-        )
+        # Only hit Shopify's price_rules API when a coupon was actually entered.
+        if coupon_code:
+            coupon_is_valid, discount_value, value_type = validate_shopify_coupon(
+                coupon_code
+            )
         logging.info(
             f"coup info: code {coupon_code}, valid {coupon_is_valid}, discount {discount_value}, value_type {value_type}"
         )
@@ -840,6 +842,28 @@ def create_shopify_order(
     )
     logging.info(f"POST shopify order url: {response.content}")
 
+    # Paid-but-out-of-stock safety net: the customer has ALREADY paid, so we
+    # must never drop the order. If Shopify can't reserve inventory (stock empty
+    # + deny policy -- the post-payment race the checkout guard can't prevent),
+    # retry once overriding the policy so inventory goes negative, and tag the
+    # order so staff can restock/fulfill it manually.
+    if response.status_code == 422 and "reserve inventory" in response.text.lower():
+        logging.warning(
+            "Inventory reservation failed for a PAID order; retrying with "
+            "decrement_ignoring_policy and tagging 'oversold-check-stock'."
+        )
+        order_data["order"]["inventory_behaviour"] = "decrement_ignoring_policy"
+        existing_tags = order_data["order"].get("tags", "")
+        order_data["order"]["tags"] = (
+            f"{existing_tags}, oversold-check-stock"
+            if existing_tags
+            else "oversold-check-stock"
+        )
+        response = shopify_request(
+            "POST", shopify_order_url, json=order_data, headers=headers
+        )
+        logging.info(f"POST shopify order url (oversell retry): {response.content}")
+
     # Log the response for debugging
     response_json = response.json()
     logging.info(f"Shopify order creation response: {response_json}")
@@ -852,16 +876,9 @@ def create_shopify_order(
         # Extract the customer information from the order creation response
         created_customer = response_json.get("order", {}).get("customer", None)
 
-        order_id = response_json.get("order", {}).get("id")
-        meta_check_url = f"{SHOPIFY_STORE_URL}/admin/api/2024-10/orders/{order_id}/metafields.json"
-
         if created_customer:
             customer_id = created_customer["id"]
             logging.info(f"Customer ID from order response: {customer_id}")
-
-            
-            resp = requests.get(meta_check_url, headers=headers)
-            print(f"resp: {resp.json()}")
 
             # Update email marketing consent if provided
             if email_marketing_consent_state:
