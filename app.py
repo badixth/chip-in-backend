@@ -1,13 +1,15 @@
 import json
 from flask import Flask, request, jsonify
 from sqlalchemy.orm import sessionmaker
-from models import Order, engine, Session
+from models import Order, ProcessedPurchase, engine, Session
+from sqlalchemy.exc import IntegrityError
 from dotenv import load_dotenv
 import os
 from flask_cors import CORS
 import requests
 import logging
 import traceback
+import time
 
 app = Flask(__name__)
 
@@ -36,6 +38,23 @@ CORS(
 # Setup logging to display incoming payloads
 logging.basicConfig(level=logging.INFO)
 logging.info(f"CHIP_IN_BRAND_ID: {CHIP_IN_BRAND_ID}")
+
+
+def shopify_request(method, url, retries=4, **kwargs):
+    """Wrapper around requests that retries on Shopify's 2 req/sec 429s,
+    honoring the Retry-After header. Returns the final response either way."""
+    resp = None
+    for attempt in range(retries):
+        resp = requests.request(method, url, **kwargs)
+        if resp.status_code != 429:
+            return resp
+        retry_after = float(resp.headers.get("Retry-After", 1))
+        logging.warning(
+            f"Shopify 429 on {method} {url}; retry {attempt + 1}/{retries} "
+            f"after {retry_after}s"
+        )
+        time.sleep(retry_after)
+    return resp
 
 
 # Function to check if the coupon is valid
@@ -338,8 +357,33 @@ def chipin_webhook():
 
         # Process the webhook data (log it for now)
         if data.get("status") == "paid":
+            chip_in_id = data["id"]
+
+            # Idempotency: Chip In retries webhook deliveries, so claim this
+            # purchase id atomically before doing any work. The UNIQUE primary
+            # key means a concurrent/duplicate delivery fails to insert and is
+            # skipped -- guaranteeing exactly one Shopify order per payment.
+            already = session.get(ProcessedPurchase, chip_in_id)
+            if already:
+                logging.info(
+                    f"Duplicate webhook for {chip_in_id} (status={already.status}, "
+                    f"order={already.shopify_order_id}). Skipping."
+                )
+                return jsonify({"status": "already_processed"}), 200
+
+            try:
+                session.add(
+                    ProcessedPurchase(chip_in_id=chip_in_id, status="processing")
+                )
+                session.commit()
+            except IntegrityError:
+                # Another delivery claimed it first, between our get() and insert.
+                session.rollback()
+                logging.info(f"Concurrent duplicate webhook for {chip_in_id}. Skipping.")
+                return jsonify({"status": "already_processed"}), 200
+
             logging.info(
-                f"Payment received for Chip In order ID: {data['id']}. Creating Shopify order..."
+                f"Payment received for Chip In order ID: {chip_in_id}. Creating Shopify order..."
             )
             extra = data['purchase']['metadata']['shopify_payload']['attributes']
 
@@ -366,15 +410,41 @@ def chipin_webhook():
                 logging.info(
                     f"Shopify order created successfully: {shopify_order_response}"
                 )
+                # Finalize the claim so future deliveries are skipped.
+                claim = session.get(ProcessedPurchase, chip_in_id)
+                if claim:
+                    claim.status = "done"
+                    claim.shopify_order_id = str(
+                        shopify_order_response.get("order", {}).get("id")
+                    )
+                    session.commit()
                 return jsonify({"status": "success"}), 200
             else:
                 logging.error("Failed to create Shopify order")
+                # Release the claim so Chip In's retry can try again.
+                session.query(ProcessedPurchase).filter_by(
+                    chip_in_id=chip_in_id
+                ).delete()
+                session.commit()
                 return jsonify({"error": "Failed to create Shopify order"}), 400
         else:
             logging.warning(f"Chip In order status not paid: {data['status']}")
             return jsonify({"status": "ignored"}), 200
     except Exception as e:
         logging.error(f"Error processing Chip In webhook: {e}")
+        # Release the claim (if we made one) so the retry isn't permanently
+        # blocked by a half-finished attempt.
+        try:
+            claimed_id = data.get("id") if isinstance(data, dict) else None
+            if claimed_id:
+                session.rollback()
+                session.query(ProcessedPurchase).filter_by(
+                    chip_in_id=claimed_id, status="processing"
+                ).delete()
+                session.commit()
+        except Exception as cleanup_err:
+            logging.error(f"Claim cleanup failed: {cleanup_err}")
+            session.rollback()
         return jsonify({"error": str(e)}), 500
 
 
@@ -504,7 +574,8 @@ def check_stock_availability(items):
         variant_id = item.get("variant_id")
         requested = int(float(item.get("quantity", 1)))
         try:
-            variant_resp = requests.get(
+            variant_resp = shopify_request(
+                "GET",
                 f"{SHOPIFY_STORE_URL}/admin/api/2024-10/variants/{variant_id}.json",
                 headers=headers,
             )
@@ -528,7 +599,8 @@ def check_stock_availability(items):
                 logging.error(f"stock check: variant {variant_id} has no inventory_item_id")
                 continue  # fail open
 
-            levels_resp = requests.get(
+            levels_resp = shopify_request(
+                "GET",
                 f"{SHOPIFY_STORE_URL}/admin/api/2024-10/inventory_levels.json"
                 f"?inventory_item_ids={inventory_item_id}",
                 headers=headers,
@@ -537,7 +609,7 @@ def check_stock_availability(items):
                 logging.error(
                     f"stock check: inventory_levels returned {levels_resp.status_code} "
                     f"for variant {variant_id}: {levels_resp.content} "
-                    "(check the app has read_inventory + read_locations scopes)"
+                    "(check the app has the read_inventory scope)"
                 )
                 continue  # fail open
 
@@ -571,7 +643,7 @@ def find_shopify_customer_by_email(email):
         "X-Shopify-Access-Token": SHOPIFY_API_KEY,
         "Content-Type": "application/json",
     }
-    response = requests.get(shopify_customer_search_url, headers=headers)
+    response = shopify_request("GET", shopify_customer_search_url, headers=headers)
     logging.info(f"Customer search response: {response.content}")
 
     if response.status_code == 200:
@@ -763,7 +835,9 @@ def create_shopify_order(
             }
         }
 
-    response = requests.post(shopify_order_url, json=order_data, headers=headers)
+    response = shopify_request(
+        "POST", shopify_order_url, json=order_data, headers=headers
+    )
     logging.info(f"POST shopify order url: {response.content}")
 
     # Log the response for debugging

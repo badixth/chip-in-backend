@@ -21,6 +21,17 @@ class Order(Base):
     total_amount = Column(Integer)
     status = Column(String)  # e.g., "Paid"
 
+
+# Tracks which Chip In purchases we have already turned into Shopify orders,
+# so retried/duplicate webhook deliveries never create a second order.
+# chip_in_id is the primary key -> a UNIQUE constraint for free (atomic claim).
+class ProcessedPurchase(Base):
+    __tablename__ = 'processed_purchases'
+
+    chip_in_id = Column(String, primary_key=True)
+    shopify_order_id = Column(String)
+    status = Column(String)  # "processing" | "done"
+
 # Create the table
 Base.metadata.create_all(engine)
 
