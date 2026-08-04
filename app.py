@@ -731,6 +731,35 @@ def create_shopify_order(
                     }
                 ]
 
+    # Automatic cart discounts (no coupon_code) are ignored by Shopify's
+    # per-line total_discount on order create. Reconstruct one as an
+    # order-level fixed_amount code so the total and promo name still show.
+    if not discount_codes:
+        total_item_discount = sum(
+            float(item.get("total_discount", 0)) for item in items
+        ) / 100
+        if total_item_discount > 0:
+            promo_title = "Discount"
+            for item in items:
+                for alloc in item.get("line_level_discount_allocations", []):
+                    title = alloc.get("discount_application", {}).get("title")
+                    if title:
+                        promo_title = title
+                        break
+                if promo_title != "Discount":
+                    break
+            discount_codes = [
+                {
+                    "code": promo_title,
+                    "amount": f"{total_item_discount:.2f}",
+                    "type": "fixed_amount",
+                }
+            ]
+            logging.info(
+                f"Applied automatic discount '{promo_title}' "
+                f"-{total_item_discount:.2f} across {len(items)} item(s)"
+            )
+
     # Shipping fee based on country and province
     requires_shipping = any(p["requires_shipping"] for p in items)
 
