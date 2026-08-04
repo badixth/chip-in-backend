@@ -685,6 +685,37 @@ def create_shopify_order(
 
     logging.info(f"items response: {items}")
 
+    # Guard: quantity < 1 makes Shopify reject the whole order, but that only
+    # surfaces once the oversell retry below bypasses the reservation check.
+    # If the line also carries no money, it's a no-op placeholder (e.g. a
+    # frontend cart bug emitting one row per size, only one of them real) --
+    # drop it. If money IS attached, something paid for was truncated to 0;
+    # clamp to 1 rather than silently dropping what the customer paid for.
+    has_invalid_quantity = False
+    kept_items = []
+    for item in items:
+        quantity = int(float(item.get("quantity", 1)))
+        if quantity < 1:
+            money_fields = ("price", "final_line_price", "original_line_price", "total_discount")
+            money_attached = any(float(item.get(f, 0) or 0) for f in money_fields)
+            if not money_attached:
+                logging.warning(
+                    f"Dropping zero-value placeholder line item: product_id="
+                    f"{item.get('product_id')} variant_id={item.get('variant_id')} "
+                    f"name={item.get('name')!r}."
+                )
+                continue
+            logging.error(
+                f"Line item quantity resolved to {quantity} (raw="
+                f"{item.get('quantity')!r}) for product_id={item.get('product_id')} "
+                f"variant_id={item.get('variant_id')} name={item.get('name')!r} "
+                "but has money attached; clamping to 1 instead of dropping."
+            )
+            item["quantity"] = 1
+            has_invalid_quantity = True
+        kept_items.append(item)
+    items = kept_items
+
     #Apply coupon code if any
     discount_codes = []
     if coupon_code:
@@ -837,6 +868,10 @@ def create_shopify_order(
             }
         }
 
+    if has_invalid_quantity:
+        order_data["order"]["tags"] = "invalid-quantity-check-stock"
+
+    logging.info(f"order_data line_items: {order_data['order']['line_items']}")
     response = shopify_request(
         "POST", shopify_order_url, json=order_data, headers=headers
     )
